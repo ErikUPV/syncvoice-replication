@@ -11,14 +11,14 @@ class GRIDEnDataset(Dataset):
 
 
 # "https://spandh.dcs.shef.ac.uk/gridcorpus/s1/video/s1.mpg_vcd.zip"
-def download_grid_dataset(output_dir: str):
+def download_grid_dataset(output_dir: str, force_download: bool = False):
     output_dir = os.path.join(output_dir, "unprocessed")
     for i in range(1, 35):
         if i == 21: continue # Skip speaker 21 (no data)
         speaker_id = f"s{i}"
         url = f"https://spandh.dcs.shef.ac.uk/gridcorpus/{speaker_id}/video/{speaker_id}.mpg_vcd.zip"
         speaker_dir = os.path.join(output_dir, speaker_id)
-        if os.path.exists(speaker_dir):
+        if os.path.exists(speaker_dir) and not force_download:
             print(f"{speaker_dir} already exists, skipping download.")
             continue
         os.makedirs(speaker_dir, exist_ok=True)
@@ -37,14 +37,14 @@ def download_grid_dataset(output_dir: str):
 
 
 # https://spandh.dcs.shef.ac.uk/gridcorpus/s1/align/s1.tar
-def download_grid_alignments(output_dir: str):
+def download_grid_alignments(output_dir: str, force_download: bool = False):
     output_dir = os.path.join(output_dir, "align")
     for i in range(1, 35):
         if i == 21: continue # Skip speaker 21 (no data)
         speaker_id = f"s{i}"
         url = f"https://spandh.dcs.shef.ac.uk/gridcorpus/{speaker_id}/align/{speaker_id}.tar"
         speaker_dir = os.path.join(output_dir, speaker_id)
-        if os.path.exists(speaker_dir):
+        if os.path.exists(speaker_dir) and not force_download:
             print(f"{speaker_dir} already exists, skipping download.")
             continue
         os.makedirs(speaker_dir, exist_ok=True)
