@@ -3,6 +3,7 @@ import requests
 import os
 import zipfile
 import argparse
+import tarfile
 
 class GRIDEnDataset(Dataset):
     pass
@@ -11,11 +12,15 @@ class GRIDEnDataset(Dataset):
 
 # "https://spandh.dcs.shef.ac.uk/gridcorpus/s1/video/s1.mpg_vcd.zip"
 def download_grid_dataset(output_dir: str):
+    output_dir = os.path.join(output_dir, "unprocessed")
     for i in range(1, 35):
         if i == 21: continue # Skip speaker 21 (no data)
         speaker_id = f"s{i}"
         url = f"https://spandh.dcs.shef.ac.uk/gridcorpus/{speaker_id}/video/{speaker_id}.mpg_vcd.zip"
         speaker_dir = os.path.join(output_dir, speaker_id)
+        if os.path.exists(speaker_dir):
+            print(f"{speaker_dir} already exists, skipping download.")
+            continue
         os.makedirs(speaker_dir, exist_ok=True)
         zip_path = os.path.join(speaker_dir, f"{speaker_id}.mpg_vcd.zip")
         if not os.path.exists(zip_path):
@@ -30,10 +35,37 @@ def download_grid_dataset(output_dir: str):
         else:
             print(f"{zip_path} already exists, skipping download.")
 
+
+# https://spandh.dcs.shef.ac.uk/gridcorpus/s1/align/s1.tar
+def download_grid_alignments(output_dir: str):
+    output_dir = os.path.join(output_dir, "align")
+    for i in range(1, 35):
+        if i == 21: continue # Skip speaker 21 (no data)
+        speaker_id = f"s{i}"
+        url = f"https://spandh.dcs.shef.ac.uk/gridcorpus/{speaker_id}/align/{speaker_id}.tar"
+        speaker_dir = os.path.join(output_dir, speaker_id)
+        if os.path.exists(speaker_dir):
+            print(f"{speaker_dir} already exists, skipping download.")
+            continue
+        os.makedirs(speaker_dir, exist_ok=True)
+        tar_path = os.path.join(speaker_dir, f"{speaker_id}.tar")
+        if not os.path.exists(tar_path):
+            print(f"Downloading {url}...")
+            response = requests.get(url)
+            with open(tar_path, 'wb') as f:
+                f.write(response.content)
+            print(f"Extracting {tar_path}...")
+            with tarfile.open(tar_path, 'r') as tar_ref:
+                tar_ref.extractall(speaker_dir)
+            os.remove(tar_path)
+        else:
+            print(f"{tar_path} already exists, skipping download.")
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Download GRID dataset")
     parser.add_argument('--output_dir', type=str, required=True, help='Directory to save the GRID dataset')
     args = parser.parse_args()
     download_grid_dataset(args.output_dir)
+    download_grid_alignments(args.output_dir)
 
 
