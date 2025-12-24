@@ -13,7 +13,7 @@ GRID_ROOT = "data/unprocessed"
 OUTPUT_ROOT = "data/face_feats"  # Guardaremos vectores .pt aquí
 PREDICTOR_PATH = "shape_predictor_68_face_landmarks.dat"
 TARGET_FPS = 25.0
-BATCH_SIZE = 32  # Procesar frames en lotes para acelerar la GPU
+BATCH_SIZE = 256  # Procesar frames en lotes para acelerar la GPU
 
 # --- MODELOS ---
 # Usamos dlib para detectar (CPU) para ser consistentes con el script de labios
