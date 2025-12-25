@@ -113,12 +113,22 @@ class HFVoxCPMDataset(TorchDataset):
     def __getitem__(self, idx: int):
         item = self.dataset[idx]
         audio = item[DEFAULT_AUDIO_COLUMN]
+
+        # 1. Load your pre-extracted features
+        # Assuming your manifest has keys: "lip_path", "face_path", "spk_path"
+        lip_feats = torch.load(item["lip_path"], weights_only=True)  # [T_vis, 96, 96]
+        face_feats = torch.load(item["face_path"], weights_only=True) # [T_vis, 512]
+        spk_emb = torch.load(item["spk_path"], weights_only=True)     # [D_spk]
+
         return {
             "text_ids": item["text_ids"],
             "audio_array": audio["array"],
             "audio_sampling_rate": audio["sampling_rate"],
             "dataset_id": item.get(DEFAULT_ID_COLUMN, 0),
             "is_prompt": item.get("is_prompt", False),
+            "lip_feats" : lip_feats,
+            "face_feats" : face_feats,
+            "spk_emb" : spk_emb
         }
 
     @staticmethod
@@ -145,12 +155,20 @@ class HFVoxCPMDataset(TorchDataset):
         audio_padded = cls.pad_sequences(audio_tensors, pad_value=-100.0)
         task_ids = torch.ones(text_padded.size(0), dtype=torch.int32)
 
+        lip_feats_list = [sample["lip_feats"] for sample in batch]
+        face_feats_list = [sample["face_feats"] for sample in batch]
+        # Stack speaker embeddings (they are global vectors)
+        spk_emb_batch = torch.stack([sample["spk_emb"] for sample in batch])
+
         return {
             "text_tokens": text_padded,
             "audio_tokens": audio_padded,
             "task_ids": task_ids,
             "dataset_ids": dataset_ids,
             "is_prompts": is_prompts,
+            "lip_feats": lip_feats_list,
+            "face_feats": face_feats_list,
+            "spk_embs": spk_emb_batch
         }
 
 
@@ -185,6 +203,8 @@ class BatchProcessor:
         text_tokens = batch["text_tokens"].to(self.device)
         task_ids = batch["task_ids"].to(self.device)
         dataset_ids = batch["dataset_ids"].to(self.device)
+        lip_feats_list = batch["lip_feats"] 
+        face_feats_list = batch["face_feats"]
 
         packed = self.packer(
             audio_tokens=audio_tokens,
@@ -192,7 +212,12 @@ class BatchProcessor:
             task_ids=task_ids,
             dataset_ids=dataset_ids,
             is_prompts=batch["is_prompts"],
+            lip_tokens_list=lip_feats_list,
+            face_tokens_list=face_feats_list,
         )
+
+        packed["spk_embs"] = batch["spk_embs"].to(self.device)
+        
         return packed
 
 
