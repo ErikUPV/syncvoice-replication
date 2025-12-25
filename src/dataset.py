@@ -10,7 +10,7 @@ class GRIDEnDataset(Dataset):
 
 
 
-# "https://spandh.dcs.shef.ac.uk/gridcorpus/s1/video/s1.mpg_vcd.zip"
+# example: "https://spandh.dcs.shef.ac.uk/gridcorpus/s1/video/s1.mpg_vcd.zip"
 def download_grid_dataset(output_dir: str, force_download: bool = False):
     output_dir = os.path.join(output_dir, "unprocessed")
     for i in range(1, 35):
@@ -36,7 +36,7 @@ def download_grid_dataset(output_dir: str, force_download: bool = False):
             print(f"{zip_path} already exists, skipping download.")
 
 
-# https://spandh.dcs.shef.ac.uk/gridcorpus/s1/align/s1.tar
+# example: https://spandh.dcs.shef.ac.uk/gridcorpus/s1/align/s1.tar
 def download_grid_alignments(output_dir: str, force_download: bool = False):
     output_dir = os.path.join(output_dir, "align")
     for i in range(1, 35):
@@ -61,7 +61,7 @@ def download_grid_alignments(output_dir: str, force_download: bool = False):
         else:
             print(f"{tar_path} already exists, skipping download.")
 
-# https://spandh.dcs.shef.ac.uk/gridcorpus/s1/audio/s1_50kHz.tar
+# example: https://spandh.dcs.shef.ac.uk/gridcorpus/s1/audio/s1_50kHz.tar
 def download_grid_audio(output_dir: str, force_download: bool = False):
     output_dir = os.path.join(output_dir, "audio")
     for i in range(1, 35):
