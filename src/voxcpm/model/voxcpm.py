@@ -368,6 +368,24 @@ class VoxCPMModel(nn.Module):
 
     def generate_streaming(self, *args, **kwargs) -> Generator[torch.Tensor, None, None]:
         return self._generate(*args, streaming=True, **kwargs)
+    
+    def _resample_visuals(self, tensor: torch.Tensor, target_len: int, mode: str = 'nearest') -> torch.Tensor:
+        """Resamples [B, T, ...] visual features to [B, target_len, ...]"""
+        # Tensor is [B, T, ...].
+        src_len = tensor.shape[1]
+        if src_len == target_len:
+            return tensor
+            
+        if mode == 'nearest':
+            indices = torch.linspace(0, src_len - 1, target_len).long()
+            indices = torch.clamp(indices, 0, src_len - 1).to(tensor.device)
+            return tensor[:, indices]
+        elif mode == 'linear':
+            # Interpolate expects [N, C, L], input is [B, T, D]
+            tensor_in = tensor.transpose(1, 2) # -> [B, D, T]
+            tensor_out = F.interpolate(tensor_in, size=target_len, mode='linear', align_corners=False)
+            return tensor_out.transpose(1, 2) # -> [B, target_len, D]
+        return tensor
 
     @torch.inference_mode()
     def _generate(
@@ -603,10 +621,15 @@ class VoxCPMModel(nn.Module):
 
 
     @torch.inference_mode()
+    @torch.inference_mode()
     def _generate_with_prompt_cache(
         self,
         target_text: str,
         prompt_cache: dict,
+        # --- NEW: Visual Inputs ---
+        lip_feats: torch.Tensor = None,
+        face_feats: torch.Tensor = None,
+        # --------------------------
         min_len: int = 2,
         max_len: int = 2000,
         inference_timesteps: int = 10,
@@ -639,10 +662,18 @@ class VoxCPMModel(nn.Module):
                 - Tensor of new text tokens
                 - New audio features up to the current step as a List if ``streaming=True``, else as a concatenated Tensor
         """
+        
+        # 1. Disable badcase retry if visuals are provided (Length is fixed by video)
+        if lip_feats is not None:
+            max_len = lip_feats.shape[1]
+            min_len = lip_feats.shape[1]
+            retry_badcase = False
+
         if retry_badcase and streaming:
             warnings.warn("Retry on bad cases is not supported in streaming mode, setting retry_badcase=False.")
             retry_badcase = False
-        # get prompt from cache
+
+        # 2. Prepare Prompt Cache (Same as original)
         if prompt_cache is None:
             prompt_audio_feat = torch.empty((0, self.patch_size, self.audio_vae.latent_dim), dtype=torch.float32)
             text = target_text
@@ -651,21 +682,15 @@ class VoxCPMModel(nn.Module):
             prompt_text = prompt_cache["prompt_text"]
             text = prompt_text + target_text
         
+        # 3. Tokenize Text (Same as original)
         text_token = torch.LongTensor(self.text_tokenizer(text))
         text_token = torch.cat(
-            [
-                text_token,
-                torch.tensor(
-                    [self.audio_start_token],
-                    dtype=torch.int32,
-                    device=text_token.device,
-                ),
-            ],
+            [text_token, torch.tensor([self.audio_start_token], dtype=torch.int32, device=text_token.device)],
             dim=-1,
         )
-        
         target_text_token = torch.LongTensor(self.text_tokenizer(target_text))
 
+        # 4. Prepare Audio/Text Masks (Same as original)
         audio_length = prompt_audio_feat.size(0)
         text_length = text_token.shape[0]
         text_pad_token = torch.zeros(audio_length, dtype=torch.int32, device=text_token.device)
@@ -676,6 +701,7 @@ class VoxCPMModel(nn.Module):
         )
         text_token = torch.cat([text_token, text_pad_token])
         audio_feat = torch.cat([audio_pad_feat, prompt_audio_feat], dim=0)
+        
         text_mask = torch.cat([torch.ones(text_length), torch.zeros(audio_length)]).type(torch.int32).to(text_token.device)
         audio_mask = torch.cat([torch.zeros(text_length), torch.ones(audio_length)]).type(torch.int32).to(text_token.device)
 
@@ -684,44 +710,48 @@ class VoxCPMModel(nn.Module):
         audio_feat = audio_feat.unsqueeze(0).to(self.device).to(get_dtype(self.config.dtype))
         audio_mask = audio_mask.unsqueeze(0).to(self.device)
     
-        # run inference
+        # 5. Run Inference Loop
         target_text_length = len(self.text_tokenizer(target_text))
         retry_badcase_times = 0
+        
         while retry_badcase_times < retry_badcase_max_times:
+            # --- UPDATED CALL: Pass visual features to _inference ---
             inference_result = self._inference(
                 text_token,
                 text_mask,
                 audio_feat,
                 audio_mask,
+                # Pass visuals here
+                lip_feats=lip_feats,
+                face_feats=face_feats,
+                # ----------------
                 min_len=min_len,
-                max_len=min(int(target_text_length * retry_badcase_ratio_threshold + 10), max_len), # avoid too long audio
+                max_len=max_len if lip_feats is not None else min(int(target_text_length * retry_badcase_ratio_threshold + 10), max_len),
                 inference_timesteps=inference_timesteps,
                 cfg_value=cfg_value,
                 streaming=streaming,
                 streaming_prefix_len=streaming_prefix_len,
             )
+            
             if streaming:
                 patch_len = self.patch_size * self.chunk_size
                 for latent_pred, pred_audio_feat in inference_result:
                     decode_audio = self.audio_vae.decode(latent_pred.to(torch.float32))
                     decode_audio = decode_audio[..., -patch_len:].squeeze(1).cpu()
-                    yield (
-                        decode_audio,
-                        target_text_token,
-                        pred_audio_feat
-                    )
+                    yield (decode_audio, target_text_token, pred_audio_feat)
                 break
             else:
                 latent_pred, pred_audio_feat = next(inference_result)
                 if retry_badcase:
                     if pred_audio_feat.shape[0] >= target_text_length * retry_badcase_ratio_threshold:
-                        print(f"  Badcase detected, audio_text_ratio={pred_audio_feat.shape[0] / target_text_length}, retrying...")
+                        print(f"  Badcase detected, retrying...")
                         retry_badcase_times += 1
                         continue
                     else:
                         break
                 else:
                     break
+                    
         if not streaming:
             decode_audio = self.audio_vae.decode(latent_pred.to(torch.float32))
             patch_len = self.patch_size * self.chunk_size
@@ -729,14 +759,12 @@ class VoxCPMModel(nn.Module):
                 decode_audio = decode_audio[..., patch_len * (streaming_prefix_len - 1):].squeeze(1).cpu()
             else:
                 decode_audio = decode_audio[..., :].squeeze(1).cpu()
-            yield (
-                decode_audio,
-                target_text_token,
-                pred_audio_feat
-            )
+            yield (decode_audio, target_text_token, pred_audio_feat)
 
-    def inference(self, *args, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
-        return next(self._inference(*args, streaming=False, **kwargs))
+    
+
+    # def inference(self, *args, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+    #     return next(self._inference(*args, streaming=False, **kwargs))
     
     def inference_streaming(self, *args, **kwargs) -> Generator[Tuple[torch.Tensor, List[torch.Tensor]], None, None]:
         return self._inference(*args, streaming=True, **kwargs)
@@ -748,6 +776,8 @@ class VoxCPMModel(nn.Module):
         text_mask: torch.Tensor,
         feat: torch.Tensor,
         feat_mask: torch.Tensor,
+        lip_feats: torch.Tensor,
+        face_feats: torch.Tensor,
         min_len: int = 2,
         max_len: int = 2000,
         inference_timesteps: int = 10,
@@ -793,6 +823,18 @@ class VoxCPMModel(nn.Module):
         pred_feat_seq = []  # b, t, p, d
         curr_embed = None
 
+        visual_cond_seq = None
+        if lip_feats is not None and face_feats is not None:
+            # 1. Encode
+            lip_emb = self.lip_encoder(lip_feats.to(self.device, dtype=self._dtype()))
+            face_feats = face_feats.to(self.device, dtype=self._dtype())
+            # 2. Concat & Adapt
+            video_feats = torch.cat([lip_emb, face_feats], dim=-1)
+            visual_cond_seq = self.visual_adapter(video_feats) # [B, T_vis, H]
+            
+            # The length of generation is strictly the length of visual_cond_seq
+            max_len = visual_cond_seq.shape[1]
+
         # Prepare prompt context patches for streaming mode
         # When there's a prompt audio, use its last (streaming_prefix_len - 1) patches as initial context
         prompt_context_patches = []
@@ -827,10 +869,16 @@ class VoxCPMModel(nn.Module):
             dit_hidden_2 = self.res_to_dit_proj(residual_hidden)  # [b, h_dit]
             dit_hidden = dit_hidden_1 + dit_hidden_2  # [b, h_dit]
 
-            video_cond = self.visual_proj(video_feats) # Proyectar dimensión visual a h_dit
+            if visual_cond_seq is not None:
+                # Get visual condition for current step i
+                if i < visual_cond_seq.shape[1]:
+                    curr_vis = visual_cond_seq[:, i, :] # [B, H]
+                    dit_hidden = dit_hidden + curr_vis
+                else:
+                    # Should not happen if max_len is set correctly
+                    pass
 
             # Sumar la condición visual al contexto del texto/audio
-            dit_hidden = dit_hidden + video_cond
 
             pred_feat = self.feat_decoder(
                 mu=dit_hidden,
@@ -855,9 +903,10 @@ class VoxCPMModel(nn.Module):
                 
                 yield feat_pred, pred_feat_seq
             
-            stop_flag = self.stop_head(self.stop_actn(self.stop_proj(lm_hidden))).argmax(dim=-1)[0].cpu().item()
-            if i > min_len and stop_flag == 1:
-                break
+            if visual_cond_seq is None:
+                stop_flag = self.stop_head(self.stop_actn(self.stop_proj(lm_hidden))).argmax(dim=-1)[0].cpu().item()
+                if i > min_len and stop_flag == 1:
+                    break
     
             lm_hidden = self.base_lm.forward_step(
                 curr_embed[:, 0, :], torch.tensor([self.base_lm.kv_cache.step()], device=curr_embed.device)

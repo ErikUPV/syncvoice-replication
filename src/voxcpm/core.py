@@ -5,6 +5,8 @@ import numpy as np
 from typing import Generator, Optional
 from huggingface_hub import snapshot_download
 from .model.voxcpm import VoxCPMModel, LoRAConfig
+import torch
+import torch.nn.functional as F
 
 class VoxCPM:
     def __init__(self,
@@ -133,10 +135,32 @@ class VoxCPM:
     def generate_streaming(self, *args, **kwargs) -> Generator[np.ndarray, None, None]:
         return self._generate(*args, streaming=True, **kwargs)
 
+    def _resample_visuals(self, tensor: torch.Tensor, target_len: int, mode: str = 'nearest') -> torch.Tensor:
+        """Resamples [B, T, ...] visual features to [B, target_len, ...]"""
+        # Tensor is [B, T, ...].
+        src_len = tensor.shape[1]
+        if src_len == target_len:
+            return tensor
+            
+        if mode == 'nearest':
+            indices = torch.linspace(0, src_len - 1, target_len).long()
+            indices = torch.clamp(indices, 0, src_len - 1).to(tensor.device)
+            return tensor[:, indices]
+        elif mode == 'linear':
+            # Interpolate expects [N, C, L], input is [B, T, D]
+            tensor_in = tensor.transpose(1, 2) # -> [B, D, T]
+            tensor_out = F.interpolate(tensor_in, size=target_len, mode='linear', align_corners=False)
+            return tensor_out.transpose(1, 2) # -> [B, target_len, D]
+        return tensor
+
     def _generate(self, 
             text : str,
             prompt_wav_path : str = None,
             prompt_text : str = None,
+            # NEW: Visual arguments
+            lip_path : str = None,
+            face_path : str = None,
+            # ---------------------
             cfg_value : float = 2.0,    
             inference_timesteps : int = 10,
             min_len : int = 2,
@@ -147,7 +171,7 @@ class VoxCPM:
             retry_badcase_max_times : int = 3,
             retry_badcase_ratio_threshold : float = 6.0,
             streaming: bool = False,
-        ) -> Generator[np.ndarray, None, None]:
+    ) -> Generator[np.ndarray, None, None]:
         """Synthesize speech for the given text and return a single waveform.
 
         This method optionally builds and reuses a prompt cache. If an external
@@ -160,6 +184,8 @@ class VoxCPM:
                 treated as a sub-sentence.
             prompt_wav_path: Path to a reference audio file for prompting.
             prompt_text: Text content corresponding to the prompt audio.
+            lip_path: Path to lip visual features file.
+            face_path: Path to face visual features file.
             cfg_value: Guidance scale for the generation model.
             inference_timesteps: Number of inference steps.
             max_len: Maximum token length during generation.
@@ -175,6 +201,8 @@ class VoxCPM:
             Yields audio chunks for each generations step if ``streaming=True``,
             otherwise yields a single array containing the final audio.
         """
+        
+        # ... (Validation checks remain the same) ...
         if not text.strip() or not isinstance(text, str):
             raise ValueError("target text must be a non-empty string")
         
@@ -189,6 +217,34 @@ class VoxCPM:
         text = re.sub(r'\s+', ' ', text)
         temp_prompt_wav_path = None
         
+        # --- NEW: Load and Resample Visuals if Provided ---
+        lip_feats = None
+        face_feats = None
+        
+        if lip_path is not None and face_path is not None:
+            # 1. Load
+            lip_feats = torch.load(lip_path, map_location=self.tts_model.device, weights_only=True)
+            face_feats = torch.load(face_path, map_location=self.tts_model.device, weights_only=True)
+            
+            # 2. Ensure Batch Dimension [B, T, ...]
+            if lip_feats.ndim == 3: lip_feats = lip_feats.unsqueeze(0)
+            if face_feats.ndim == 2: face_feats = face_feats.unsqueeze(0)
+            
+            # 3. Calculate Target Audio Length (visuals determine length)
+            # visual_fps = 25.0
+            # audio_fps = sample_rate / hop_length (e.g. 16000/640 = 25)
+            # scale = audio_fps / visual_fps
+            audio_vae = self.tts_model.audio_vae
+            audio_fps = audio_vae.sample_rate / audio_vae.hop_length
+            scale_factor = audio_fps / 25.0
+            
+            target_len = int(lip_feats.shape[1] * scale_factor)
+            
+            # 4. Resample
+            lip_feats = self._resample_visuals(lip_feats, target_len, mode='nearest')
+            face_feats = self._resample_visuals(face_feats, target_len, mode='linear')
+        # ---------------------------------------------------
+
         try:
             if prompt_wav_path is not None and prompt_text is not None:
                 if denoise and self.denoiser is not None:
@@ -201,7 +257,7 @@ class VoxCPM:
                     prompt_text=prompt_text
                 )
             else:
-                fixed_prompt_cache = None  # will be built from the first inference
+                fixed_prompt_cache = None
             
             if normalize:
                 if self.text_normalizer is None:
@@ -209,9 +265,14 @@ class VoxCPM:
                     self.text_normalizer = TextNormalizer()
                 text = self.text_normalizer.normalize(text)
             
+            # Pass visuals to the model's generator
             generate_result = self.tts_model._generate_with_prompt_cache(
                             target_text=text,
                             prompt_cache=fixed_prompt_cache,
+                            # Pass new visuals
+                            lip_feats=lip_feats,
+                            face_feats=face_feats,
+                            # ----------------
                             min_len=min_len,
                             max_len=max_len,
                             inference_timesteps=inference_timesteps,
