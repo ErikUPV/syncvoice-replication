@@ -61,11 +61,37 @@ def download_grid_alignments(output_dir: str, force_download: bool = False):
         else:
             print(f"{tar_path} already exists, skipping download.")
 
+# https://spandh.dcs.shef.ac.uk/gridcorpus/s1/audio/s1_50kHz.tar
+def download_grid_audio(output_dir: str, force_download: bool = False):
+    output_dir = os.path.join(output_dir, "audio")
+    for i in range(1, 35):
+        if i == 21: continue # Skip speaker 21 (no data)
+        speaker_id = f"s{i}"
+        url = f"https://spandh.dcs.shef.ac.uk/gridcorpus/{speaker_id}/audio/{speaker_id}_50kHz.tar"
+        speaker_dir = os.path.join(output_dir, speaker_id)
+        if os.path.exists(speaker_dir) and not force_download:
+            print(f"{speaker_dir} already exists, skipping download.")
+            continue
+        os.makedirs(speaker_dir, exist_ok=True)
+        tar_path = os.path.join(speaker_dir, f"{speaker_id}_50kHz.tar")
+        if not os.path.exists(tar_path):
+            print(f"Downloading {url}...")
+            response = requests.get(url)
+            with open(tar_path, 'wb') as f:
+                f.write(response.content)
+            print(f"Extracting {tar_path}...")
+            with tarfile.open(tar_path, 'r') as tar_ref:
+                tar_ref.extractall(speaker_dir)
+            os.remove(tar_path)
+        else:
+            print(f"{tar_path} already exists, skipping download.")
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Download GRID dataset")
     parser.add_argument('--output_dir', type=str, required=True, help='Directory to save the GRID dataset')
     args = parser.parse_args()
     download_grid_dataset(args.output_dir)
     download_grid_alignments(args.output_dir)
+    download_grid_audio(args.output_dir)
 
 
