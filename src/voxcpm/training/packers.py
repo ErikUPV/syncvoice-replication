@@ -4,6 +4,7 @@ from typing import Dict, List, Tuple
 import torch
 import torch.nn as nn
 from einops import rearrange
+import torch.nn.functional as F
 
 
 class AudioFeatureProcessingPacker:

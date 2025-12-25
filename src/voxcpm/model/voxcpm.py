@@ -44,7 +44,7 @@ from ..modules.locdit import CfmConfig, UnifiedCFM, VoxCPMLocDiT
 from ..modules.locenc import VoxCPMLocEnc
 from ..modules.minicpm4 import MiniCPM4Config, MiniCPMModel
 from .utils import get_dtype, mask_multichar_chinese_tokens
-from ...fusion.modules import VisualAdapter, VisualAdapterConfig
+from ...fusion.modules import LipEncoder, VisualAdapter, VisualAdapterConfig
 
 
 class VoxCPMEncoderConfig(BaseModel):
@@ -187,13 +187,17 @@ class VoxCPMModel(nn.Module):
         self.sample_rate = audio_vae.sample_rate
 
         # Visual Adapter
+        self.lip_encoder = LipEncoder(out_dim=config.va_config.lip_dim)
+        
+        # 2. Visual Adapter (Fuses Lip + Face -> Text Dimension)
+        # Note: We calculate total visual dim = lip_dim + face_dim
+        visual_input_dim = config.va_config.lip_dim + config.va_config.face_dim
+        
         self.visual_adapter = VisualAdapter(
-            text_dim=config.lm_config.hidden_size,
-            face_dim=config.va_config.face_dim,
-            lip_dim=config.va_config.lip_dim,
+            visual_dim=visual_input_dim,          # Corrected to match modules.py signature
+            text_dim=config.lm_config.hidden_size, # Project to model's hidden dim
             bottleneck_dim=config.va_config.bottleneck_dim
         )
-
         if self.lora_config is not None:
             self._apply_lora()
 
@@ -250,6 +254,8 @@ class VoxCPMModel(nn.Module):
         loss_mask: torch.Tensor,
         position_ids: torch.Tensor,
         labels: torch.Tensor,
+        lip_feats: torch.Tensor,   # [B, T, 96, 96]
+        face_feats: torch.Tensor,  # [B, T, 512]
         *,
         progress: float = 0.0,
         sample_generate: bool = False,
@@ -262,6 +268,18 @@ class VoxCPMModel(nn.Module):
         audio_mask = audio_mask.to(self.device, dtype=self._dtype())
         loss_mask = loss_mask.to(self.device, dtype=self._dtype())
         labels = labels.to(self.device, dtype=torch.long)
+
+        lip_feats = lip_feats.to(self.device, dtype=target_dtype)
+        face_feats = face_feats.to(self.device, dtype=target_dtype)
+
+        lip_emb = self.lip_encoder(lip_feats)
+        
+        # 2. Concatenate: [B, T, lip_dim + face_dim]
+        video_feats = torch.cat([lip_emb, face_feats], dim=-1)
+        
+        # 3. Adapter Projection: [B, T, hidden_size]
+        # We multiply by audio_mask to ensure no visual info leaks into text prompt area
+        visual_cond = self.visual_adapter(video_feats) * audio_mask.unsqueeze(-1)
 
         B, T, P, D = audio_feats.shape
         feat_embed = self.feat_encoder(audio_feats)
@@ -287,6 +305,10 @@ class VoxCPMModel(nn.Module):
         )
 
         dit_hidden = self.lm_to_dit_proj(lm_hidden) + self.res_to_dit_proj(residual_hidden)
+
+        # Inject Visual Condition
+        dit_hidden = dit_hidden + visual_cond
+
         dit_hidden = rearrange(dit_hidden, "b t c -> (b t) c")
 
         # Keep diffusion inputs in the same dtype as the model (e.g., bfloat16)

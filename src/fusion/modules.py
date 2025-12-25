@@ -36,22 +36,48 @@ class VisualAdapter(nn.Module):
     # Supongamos que ya tienes los modelos cargados
 # lip_model = ... (ResNet18-3D)
 # face_model = ... (ResNet o similar)
+class LipEncoder(nn.Module):
+    def __init__(self, out_dim=256):
+        super().__init__()
+        # Simple ResNet-like 3D frontend
+        # Input: [B, 1, T, 96, 96]
+        self.conv1 = nn.Conv3d(1, 64, kernel_size=(5, 7, 7), stride=(1, 2, 2), padding=(2, 3, 3), bias=False)
+        self.bn1 = nn.BatchNorm3d(64)
+        self.relu = nn.ReLU(inplace=True)
+        self.maxpool = nn.MaxPool3d(kernel_size=(1, 3, 3), stride=(1, 2, 2), padding=(0, 1, 1))
 
-def get_video_feats(video_path):
-    # 1. Cargar video y extraer frames (T frames, H, W, C)
-    frames = load_video_frames(video_path) 
-    
-    # 2. Detectar landmarks y recortar
-    # Retorna tensores: [T, 1, 96, 96] (labios BW) y [T, 3, 224, 224] (cara RGB)
-    lip_crops, face_crops = extract_crops_with_mediapipe(frames)
-    
-    # 3. Pasar por los encoders (sin gradientes, solo inferencia)
-    with torch.no_grad():
-        # Lip Encoder suele requerir una ventana de tiempo, pero simplifiquemos:
-        lip_emb = lip_model(lip_crops)   # Shape: [T, 512]
-        face_emb = face_model(face_crops) # Shape: [T, 256]
-    
-    # 4. Concatenar
-    video_feats = torch.cat([lip_emb, face_emb], dim=-1) # Shape: [T, 768]
-    
-    return video_feats
+        # Basic Blocks
+        self.layer1 = self._make_layer(64, 64)
+        self.layer2 = self._make_layer(64, 128)
+        self.layer3 = self._make_layer(128, 256)
+        self.layer4 = self._make_layer(256, out_dim)
+
+        self.avgpool = nn.AdaptiveAvgPool3d((None, 1, 1))
+
+    def _make_layer(self, in_planes, planes):
+        return nn.Sequential(
+            nn.Conv3d(in_planes, planes, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.BatchNorm3d(planes),
+            nn.ReLU(inplace=True),
+            nn.Conv3d(planes, planes, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.BatchNorm3d(planes),
+            nn.ReLU(inplace=True),
+        )
+
+    def forward(self, x):
+        # x: [B, T, 96, 96]
+        x = x.unsqueeze(1) # [B, 1, T, 96, 96]
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x) # [B, out_dim, T, H', W']
+
+        x = self.avgpool(x) # [B, out_dim, T, 1, 1]
+        x = x.squeeze(-1).squeeze(-1) # [B, out_dim, T]
+        x = x.transpose(1, 2) # [B, T, out_dim]
+        return x
