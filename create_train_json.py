@@ -33,9 +33,12 @@ def save_to_jsonl(dataframe, filename):
     with open(filename, 'w', encoding='utf-8') as f:
         for _, row in dataframe.iterrows():
             line_data = {
-                "audio": args.prefix + str(row["audio_file"]), 
+                "audio": str(row["audio"]), 
                 "text": row["text"], 
-                "duration": row["duration"]
+                "duration": row["duration"],
+                "lip_feats": str(row["lip_feats"]),
+                "face_feats": str(row["face_feats"]),
+                "spk_embs": str(row["spk_embs"]),
             }
             json_line = json.dumps(line_data, ensure_ascii=False)
             f.write(json_line + '\n')
