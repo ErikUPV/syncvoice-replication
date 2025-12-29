@@ -164,7 +164,6 @@ class HFVoxCPMDataset(TorchDataset):
         face_feats_list = [sample["face_feats"] for sample in batch]
         face_padded = pad_sequence(face_feats_list, batch_first=True, padding_value=-100.0)
 
-        print(lip_padded.shape)
         # face_padded = cls.pad_sequences(face_feats_list, pad_value=-100.0)
         # Stack speaker embeddings (they are global vectors)
         # spk_emb_batch = torch.stack([sample["spk_emb"] for sample in batch])
