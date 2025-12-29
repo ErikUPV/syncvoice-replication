@@ -136,6 +136,7 @@ def main():
     valid_loader = iter(valid_loader)
 
     for i, item in enumerate(tqdm(valid_loader, desc="Processing samples")):
+        print(item)
         # Run inference
         prompt_wav_path = item['audio']
         prompt_text = item["text"]
