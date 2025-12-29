@@ -225,7 +225,7 @@ class VoxCPM:
         if not ((lip_feats is None and face_feats is None) or (lip_path is None and face_path is None)):
             raise ValueError("Expected either lip/face features or paths, but found both")
         
-        if lip_feats and face_feats:
+        if lip_feats is not None and face_feats is not None:
             lip_feats = lip_feats.to(self.tts_model.device)
             face_feats = face_feats.to(self.tts_model.device)
         
