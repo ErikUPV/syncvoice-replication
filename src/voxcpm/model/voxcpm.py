@@ -269,8 +269,8 @@ class VoxCPMModel(nn.Module):
         loss_mask = loss_mask.to(self.device, dtype=self._dtype())
         labels = labels.to(self.device, dtype=torch.long)
 
-        lip_feats = lip_feats.to(self.device, dtype=target_dtype)
-        face_feats = face_feats.to(self.device, dtype=target_dtype)
+        lip_feats = lip_feats.to(self.device, dtype=self._dtype())
+        face_feats = face_feats.to(self.device, dtype=self._dtype())
 
         lip_emb = self.lip_encoder(lip_feats)
         
