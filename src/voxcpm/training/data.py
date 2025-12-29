@@ -117,9 +117,9 @@ class HFVoxCPMDataset(TorchDataset):
 
         # 1. Load your pre-extracted features
         # Assuming your manifest has keys: "lip_path", "face_path", "spk_path"
-        lip_feats = torch.load(item["lip_path"], weights_only=True)  # [T_vis, 96, 96]
-        face_feats = torch.load(item["face_path"], weights_only=True) # [T_vis, 512]
-        spk_emb = torch.load(item["spk_path"], weights_only=True)     # [D_spk]
+        lip_feats = torch.load(item["lip_feats"], weights_only=True)  # [T_vis, 96, 96]
+        face_feats = torch.load(item["face_feats"], weights_only=True) # [T_vis, 512]
+        # spk_emb = torch.load(item["spk_embs"], weights_only=True)     # [D_spk]
 
         return {
             "text_ids": item["text_ids"],
@@ -129,7 +129,7 @@ class HFVoxCPMDataset(TorchDataset):
             "is_prompt": item.get("is_prompt", False),
             "lip_feats" : lip_feats,
             "face_feats" : face_feats,
-            "spk_emb" : spk_emb
+            # "spk_emb" : spk_emb
         }
 
     @staticmethod
@@ -159,7 +159,7 @@ class HFVoxCPMDataset(TorchDataset):
         lip_feats_list = [sample["lip_feats"] for sample in batch]
         face_feats_list = [sample["face_feats"] for sample in batch]
         # Stack speaker embeddings (they are global vectors)
-        spk_emb_batch = torch.stack([sample["spk_emb"] for sample in batch])
+        # spk_emb_batch = torch.stack([sample["spk_emb"] for sample in batch])
 
         return {
             "text_tokens": text_padded,
@@ -169,7 +169,7 @@ class HFVoxCPMDataset(TorchDataset):
             "is_prompts": is_prompts,
             "lip_feats": lip_feats_list,
             "face_feats": face_feats_list,
-            "spk_embs": spk_emb_batch
+            # "spk_embs": spk_emb_batch
         }
 
 
@@ -217,7 +217,7 @@ class BatchProcessor:
             face_tokens_list=face_feats_list,
         )
 
-        packed["spk_embs"] = batch["spk_embs"].to(self.device)
+        # packed["spk_embs"] = batch["spk_embs"].to(self.device)
         
         return packed
 
