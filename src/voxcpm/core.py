@@ -243,15 +243,17 @@ class VoxCPM:
         # visual_fps = 25.0
         # audio_fps = sample_rate / hop_length (e.g. 16000/640 = 25)
         # scale = audio_fps / visual_fps
-        audio_vae = self.tts_model.audio_vae
-        audio_fps = audio_vae.sample_rate / audio_vae.hop_length
-        scale_factor = audio_fps / 25.0 
+        # audio_vae = self.tts_model.audio_vae
+        # audio_fps = audio_vae.sample_rate / audio_vae.hop_length
+        # scale_factor = audio_fps / 25.0 
         
-        target_len = int(lip_feats.shape[1] * scale_factor)
+        # target_len = int(lip_feats.shape[1] * scale_factor)
+
+        # print(f"Target len: {target_len}, Lip feats len: {lip_feats.shape[1]}, Face feats len: {face_feats.shape[1]}")
         
         # 4. Resample
-        lip_feats = self._resample_visuals(lip_feats, target_len, mode='nearest')
-        face_feats = self._resample_visuals(face_feats, target_len, mode='linear')
+        # lip_feats = self._resample_visuals(lip_feats, target_len, mode='nearest')
+        # face_feats = self._resample_visuals(face_feats, target_len, mode='linear')
         # ---------------------------------------------------
 
         try:

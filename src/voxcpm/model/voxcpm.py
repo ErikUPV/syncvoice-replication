@@ -272,7 +272,7 @@ class VoxCPMModel(nn.Module):
         lip_feats = lip_feats.to(self.device, dtype=self._dtype())
         face_feats = face_feats.to(self.device, dtype=self._dtype())
 
-        print(lip_feats.shape, face_feats.shape)
+        # print(lip_feats.shape, face_feats.shape)
 
         lip_emb = self.lip_encoder(lip_feats)
         
@@ -625,7 +625,6 @@ class VoxCPMModel(nn.Module):
 
 
     @torch.inference_mode()
-    @torch.inference_mode()
     def _generate_with_prompt_cache(
         self,
         target_text: str,
@@ -666,12 +665,7 @@ class VoxCPMModel(nn.Module):
                 - Tensor of new text tokens
                 - New audio features up to the current step as a List if ``streaming=True``, else as a concatenated Tensor
         """
-        
-        # 1. Disable badcase retry if visuals are provided (Length is fixed by video)
-        if lip_feats is not None:
-            max_len = lip_feats.shape[1]
-            min_len = lip_feats.shape[1]
-            retry_badcase = False
+                
 
         if retry_badcase and streaming:
             warnings.warn("Retry on bad cases is not supported in streaming mode, setting retry_badcase=False.")
@@ -713,6 +707,16 @@ class VoxCPMModel(nn.Module):
         text_mask = text_mask.unsqueeze(0).to(self.device)
         audio_feat = audio_feat.unsqueeze(0).to(self.device).to(get_dtype(self.config.dtype))
         audio_mask = audio_mask.unsqueeze(0).to(self.device)
+
+        lip_feats = self._resample_visuals(lip_feats, audio_feat.shape[1], mode='nearest') if lip_feats is not None else None
+        face_feats = self._resample_visuals(face_feats, audio_feat.shape[1], mode='linear') if face_feats is not None else None
+
+         # Adjust min_len and max_len based on visual features length
+
+        if lip_feats is not None:
+            max_len = lip_feats.shape[1]
+            min_len = lip_feats.shape[1]
+            retry_badcase = False
     
         # 5. Run Inference Loop
         target_text_length = len(self.text_tokenizer(target_text))
