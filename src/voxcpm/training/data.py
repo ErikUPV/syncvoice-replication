@@ -156,10 +156,12 @@ class HFVoxCPMDataset(TorchDataset):
         audio_padded = cls.pad_sequences(audio_tensors, pad_value=-100.0)
         task_ids = torch.ones(text_padded.size(0), dtype=torch.int32)
 
-        lip_feats_list = [sample["lip_feats"] for sample in batch]
-        face_feats_list = [sample["face_feats"] for sample in batch]
+        lip_feats_list = [torch.tensor(sample["lip_feats"]) for sample in batch]
+        face_feats_list = [torch.tensor(sample["face_feats"]) for sample in batch]
         # Stack speaker embeddings (they are global vectors)
         # spk_emb_batch = torch.stack([sample["spk_emb"] for sample in batch])
+
+        print(type(text_tensors))
 
         return {
             "text_tokens": text_padded,
@@ -204,7 +206,7 @@ class BatchProcessor:
         text_tokens = batch["text_tokens"].to(self.device)
         task_ids = batch["task_ids"].to(self.device)
         dataset_ids = batch["dataset_ids"].to(self.device)
-        lip_feats_list = batch["lip_feats"] 
+        lip_feats_list = batch["lip_feats"]
         face_feats_list = batch["face_feats"]
 
         packed = self.packer(
