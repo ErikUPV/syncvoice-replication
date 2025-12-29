@@ -116,7 +116,8 @@ def main():
     )
 
     _, val_ds = load_audio_text_datasets(train_manifest=f"{args.data_root}/train.jsonl",
-                                       val_manifest=f"{args.data_root}/valid.jsonl")
+                                       val_manifest=f"{args.data_root}/valid.jsonl",
+                                       sample_rate=44100)
     
     tokenizer = model.tts_model.text_tokenizer
     def tokenize(batch):
