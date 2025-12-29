@@ -121,6 +121,8 @@ def main():
     accelerator = Accelerator(amp=True)
     _ , valid_loader = build_dataloader(dataset, batch_size=1, num_workers=1, accelerator=accelerator)
 
+    valid_loader = iter(valid_loader)
+
     for i, item in enumerate(tqdm(valid_loader, desc="Processing samples")):
         # Run inference
         prompt_wav_path = item['audio']
