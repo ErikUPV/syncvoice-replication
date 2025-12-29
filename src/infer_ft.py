@@ -123,7 +123,8 @@ def main():
     def tokenize(batch):
         text_list = batch["text"]
         text_ids = [tokenizer(text) for text in text_list]
-        return {"text_ids": text_ids}
+        batch["text_ids"] = text_ids
+        return batch
     
     val_ds = val_ds.map(tokenize, batched=True, remove_columns=["text"])
     
