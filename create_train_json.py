@@ -67,7 +67,7 @@ ids = set(ids)
 
 samples = []
 dirs =  ['align', 'audio', 'face_feats', 'rois', 'speaker_embeddings']
-for spkr, id in ids:
+for id, spkr in ids:
         samples.append({
             "text" : parse_grid_align(f"{args.data_root}/align/{spkr}/{id}.align"),
             "audio" : f"{args.data_root}/audio/{spkr}/{id}.wav",
