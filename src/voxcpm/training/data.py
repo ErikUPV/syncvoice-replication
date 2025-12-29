@@ -11,6 +11,8 @@ from ..model.voxcpm import VoxCPMConfig
 from ..modules.audiovae import AudioVAE
 from .packers import AudioFeatureProcessingPacker
 
+from torch.nn.utils.rnn import pad_sequence
+
 
 DEFAULT_TEXT_COLUMN = "text"
 DEFAULT_AUDIO_COLUMN = "audio"
@@ -157,9 +159,11 @@ class HFVoxCPMDataset(TorchDataset):
         task_ids = torch.ones(text_padded.size(0), dtype=torch.int32)
 
         lip_feats_list = [sample["lip_feats"] for sample in batch]
-        lip_padded = cls.pad_sequences(lip_feats_list, pad_value=0.0)
+        # lip_padded = cls.pad_sequences(lip_feats_list, pad_value=-100.0)
+        lip_padded = pad_sequence(lip_feats_list, batch_first=True, padding_value=-100.0)
         face_feats_list = [sample["face_feats"] for sample in batch]
-        face_padded = cls.pad_sequences(face_feats_list, pad_value=0.0)
+        face_padded = pad_sequence(face_feats_list, batch_first=True, padding_value=-100.0)
+        # face_padded = cls.pad_sequences(face_feats_list, pad_value=-100.0)
         # Stack speaker embeddings (they are global vectors)
         # spk_emb_batch = torch.stack([sample["spk_emb"] for sample in batch])
 
