@@ -265,6 +265,7 @@ class VoxCPMModel(nn.Module):
         text_tokens = text_tokens.to(self.device, dtype=torch.long)
         text_mask = text_mask.to(self.device, dtype=self._dtype())
         audio_feats = audio_feats.to(self.device, dtype=self._dtype())
+        print(audio_feats.shape)
         audio_mask = audio_mask.to(self.device, dtype=self._dtype())
         loss_mask = loss_mask.to(self.device, dtype=self._dtype())
         labels = labels.to(self.device, dtype=torch.long)
