@@ -117,7 +117,9 @@ def main():
 
     dataset = load_audio_text_datasets(train_manifest=f"{args.data_root}/train.jsonl",
                                        val_manifest=f"{args.data_root}/valid.jsonl")
-    _ , valid_loader = build_dataloader(dataset, batch_size=1, num_workers=1)
+    
+    accelerator = Accelerator(amp=True)
+    _ , valid_loader = build_dataloader(dataset, batch_size=1, num_workers=1, accelerator=accelerator)
 
     for i, item in enumerate(tqdm(valid_loader, desc="Processing samples")):
         # Run inference
