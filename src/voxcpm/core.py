@@ -245,7 +245,7 @@ class VoxCPM:
         # scale = audio_fps / visual_fps
         audio_vae = self.tts_model.audio_vae
         audio_fps = audio_vae.sample_rate / audio_vae.hop_length
-        scale_factor = audio_fps / 25.0 / 4 
+        scale_factor = audio_fps / 25.0 
         
         target_len = int(lip_feats.shape[1] * scale_factor)
         
