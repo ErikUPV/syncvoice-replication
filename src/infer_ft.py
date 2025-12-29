@@ -119,23 +119,7 @@ def main():
                                        val_manifest=f"{args.data_root}/valid.jsonl",
                                        sample_rate=44100)
     
-    tokenizer = model.tts_model.text_tokenizer
-    def tokenize(batch):
-        text_list = batch["text"]
-        text_ids = [tokenizer(text) for text in text_list]
-        batch["text_ids"] = text_ids
-        return batch
-    
-    val_ds = val_ds.map(tokenize, batched=True, remove_columns=["text"])
-    
-
-    
-    accelerator = Accelerator(amp=True)
-    valid_loader = build_dataloader(val_ds, batch_size=1, num_workers=1, accelerator=accelerator)
-
-    valid_loader = iter(valid_loader)
-
-    for i, item in enumerate(tqdm(valid_loader, desc="Processing samples")):
+    for i, item in enumerate(tqdm(val_ds, desc="Processing samples")):
         print(item)
         # Run inference
         prompt_wav_path = item['audio']
