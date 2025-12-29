@@ -81,6 +81,8 @@ for spkr, id in ids:
 train_df = pd.DataFrame(samples[:-args.valid_samples])
 valid_df = pd.DataFrame(samples[-args.valid_samples:])
 
+os.makedirs(args.output_dir, exist_ok=True)
+
 save_to_jsonl(train_df, f"{args.output_dir}/train.jsonl")
 save_to_jsonl(valid_df, f"{args.output_dir}/valid.jsonl")
 
