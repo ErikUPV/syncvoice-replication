@@ -3,6 +3,7 @@ import argparse
 import json
 import os
 import soundfile as sf
+from tqdm.auto import tqdm
 
 def parse_grid_align(align_path):
     """
@@ -67,7 +68,7 @@ ids = set(ids)
 
 samples = []
 dirs =  ['align', 'audio', 'face_feats', 'rois', 'speaker_embeddings']
-for id, spkr in ids:
+for id, spkr in tqdm(ids, desc="Processing samples"):
         samples.append({
             "text" : parse_grid_align(f"{args.data_root}/align/{spkr}/{id}.align"),
             "audio" : f"{args.data_root}/audio/{spkr}/{id}.wav",
