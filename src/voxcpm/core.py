@@ -59,7 +59,7 @@ class VoxCPM:
             self.denoiser = None
         if optimize:
             print("Warm up VoxCPMModel...")
-            self.tts_model.generate(
+            self.generate(
                 target_text="Hello, this is the first test sentence.",
                 lip_feats=torch.rand([1, 10, 96, 96]),
                 face_feats=torch.rand([1, 10, 512]),

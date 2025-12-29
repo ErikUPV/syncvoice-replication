@@ -393,6 +393,8 @@ class VoxCPMModel(nn.Module):
         target_text: str,
         prompt_text: str = "",
         prompt_wav_path: str = "",
+        lip_feats: torch.Tensor = None,
+        face_feats: torch.Tensor = None,
         min_len: int = 2,
         max_len: int = 2000,
         inference_timesteps: int = 10,
