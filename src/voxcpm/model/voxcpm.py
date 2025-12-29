@@ -909,6 +909,7 @@ class VoxCPMModel(nn.Module):
                 stop_flag = self.stop_head(self.stop_actn(self.stop_proj(lm_hidden))).argmax(dim=-1)[0].cpu().item()
                 if i > min_len and stop_flag == 1:
                     break
+                
     
             lm_hidden = self.base_lm.forward_step(
                 curr_embed[:, 0, :], torch.tensor([self.base_lm.kv_cache.step()], device=curr_embed.device)

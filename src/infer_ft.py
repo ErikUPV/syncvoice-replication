@@ -127,6 +127,8 @@ def main():
         lip_feats = item["lip_feats"]
         face_feats = item["face_feats"]
 
+        id = lip_feats.split('/')[-1].replace('.pt','')
+
         # prompt_wav_path = args.prompt_audio if args.prompt_audio else None
         # prompt_text = args.prompt_text if args.prompt_text else None
 
@@ -149,7 +151,7 @@ def main():
         )
 
     # Save audio
-        out_path = Path(f"{args.output}/sample_{i}.wav")
+        out_path = Path(f"{args.output}/{id}.wav")
         out_path.parent.mkdir(parents=True, exist_ok=True)
         sf.write(str(out_path), audio_np, model.tts_model.sample_rate)
 
