@@ -330,7 +330,8 @@ def validate(model, val_loader, batch_processor, accelerator, tracker, lambdas):
                     processed["loss_mask"],
                     processed["position_ids"],
                     processed["labels"],
-                    processed[""]
+                    processed["lip_feats"],
+                    processed["face_feats"],
                     progress=0.0,
                     sample_generate=False,
                 )
