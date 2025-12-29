@@ -206,8 +206,8 @@ class BatchProcessor:
         text_tokens = batch["text_tokens"].to(self.device)
         task_ids = batch["task_ids"].to(self.device)
         dataset_ids = batch["dataset_ids"].to(self.device)
-        lip_feats_list = batch["lip_feats"] 
-        face_feats_list = batch["face_feats"]
+        lip_feats_list = batch["lip_feats"].to(self.device)
+        face_feats_list = batch["face_feats"].to(self.device)
 
         packed = self.packer(
             audio_tokens=audio_tokens,
