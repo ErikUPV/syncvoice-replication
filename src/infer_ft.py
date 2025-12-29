@@ -115,11 +115,21 @@ def main():
         optimize=True,
     )
 
-    dataset = load_audio_text_datasets(train_manifest=f"{args.data_root}/train.jsonl",
+    _, val_ds = load_audio_text_datasets(train_manifest=f"{args.data_root}/train.jsonl",
                                        val_manifest=f"{args.data_root}/valid.jsonl")
     
+    tokenizer = model.tts_model.text_tokenizer
+    def tokenize(batch):
+        text_list = batch["text"]
+        text_ids = [tokenizer(text) for text in text_list]
+        return {"text_ids": text_ids}
+    
+    val_ds = val_ds.map(tokenize, batched=True, remove_columns=["text"])
+    
+
+    
     accelerator = Accelerator(amp=True)
-    _ , valid_loader = build_dataloader(dataset, batch_size=1, num_workers=1, accelerator=accelerator)
+    valid_loader = build_dataloader(val_ds, batch_size=1, num_workers=1, accelerator=accelerator)
 
     valid_loader = iter(valid_loader)
 
