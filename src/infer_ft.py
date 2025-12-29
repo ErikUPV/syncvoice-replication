@@ -122,23 +122,23 @@ def main():
     for i, item in enumerate(tqdm(val_ds, desc="Processing samples")):
         print(item)
         # Run inference
-        prompt_wav_path = item['audio']
-        prompt_text = item["text"]
+        prompt_wav_path = None  # item['audio']
+        text = item["text"]
         lip_feats = item["lip_feats"]
         face_feats = item["face_feats"]
 
         # prompt_wav_path = args.prompt_audio if args.prompt_audio else None
         # prompt_text = args.prompt_text if args.prompt_text else None
 
-        print(f"[FT Inference] Synthesizing: text='{args.text}'")
+        print(f"[FT Inference] Synthesizing: text='{text}'")
         if prompt_wav_path:
             print(f"[FT Inference] Using reference audio: {prompt_wav_path}")
-            print(f"[FT Inference] Reference text: {prompt_text}")
+            print(f"[FT Inference] Reference text: {text}")
 
         audio_np = model.generate(
-            text=args.text,
+            text=text,
             prompt_wav_path=prompt_wav_path,
-            prompt_text=prompt_text,
+            prompt_text=None,
             lip_feats=lip_feats,
             face_feats=face_feats,
             cfg_value=args.cfg_value,
