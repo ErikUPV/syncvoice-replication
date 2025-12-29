@@ -60,7 +60,7 @@ class VoxCPM:
         if optimize:
             print("Warm up VoxCPMModel...")
             self.generate(
-                target_text="Hello, this is the first test sentence.",
+                text="Hello, this is the first test sentence.",
                 lip_feats=torch.rand([1, 10, 96, 96]),
                 face_feats=torch.rand([1, 10, 512]),
                 max_len=10,
