@@ -160,6 +160,8 @@ class VoxCPM:
             # NEW: Visual arguments
             lip_path : str = None,
             face_path : str = None,
+            lip_feats : torch.Tensor = None,
+            face_feats : torch.Tensor = None,
             # ---------------------
             cfg_value : float = 2.0,    
             inference_timesteps : int = 10,
@@ -218,31 +220,35 @@ class VoxCPM:
         temp_prompt_wav_path = None
         
         # --- NEW: Load and Resample Visuals if Provided ---
-        lip_feats = None
-        face_feats = None
+        if not ((lip_feats is None and face_feats is None) or (lip_path is None and face_path is None)):
+            raise ValueError("Expected either lip/face features or paths, but found both")
+        
+        if lip_feats and face_feats:
+            lip_feats = lip_feats.to(self.tts_model.device)
+            face_feats = face_feats.to(self.tts_model.device)
         
         if lip_path is not None and face_path is not None:
             # 1. Load
             lip_feats = torch.load(lip_path, map_location=self.tts_model.device, weights_only=True)
             face_feats = torch.load(face_path, map_location=self.tts_model.device, weights_only=True)
             
-            # 2. Ensure Batch Dimension [B, T, ...]
-            if lip_feats.ndim == 3: lip_feats = lip_feats.unsqueeze(0)
-            if face_feats.ndim == 2: face_feats = face_feats.unsqueeze(0)
-            
-            # 3. Calculate Target Audio Length (visuals determine length)
-            # visual_fps = 25.0
-            # audio_fps = sample_rate / hop_length (e.g. 16000/640 = 25)
-            # scale = audio_fps / visual_fps
-            audio_vae = self.tts_model.audio_vae
-            audio_fps = audio_vae.sample_rate / audio_vae.hop_length
-            scale_factor = audio_fps / 25.0
-            
-            target_len = int(lip_feats.shape[1] * scale_factor)
-            
-            # 4. Resample
-            lip_feats = self._resample_visuals(lip_feats, target_len, mode='nearest')
-            face_feats = self._resample_visuals(face_feats, target_len, mode='linear')
+        # 2. Ensure Batch Dimension [B, T, ...]
+        if lip_feats.ndim == 3: lip_feats = lip_feats.unsqueeze(0)
+        if face_feats.ndim == 2: face_feats = face_feats.unsqueeze(0)
+        
+        # 3. Calculate Target Audio Length (visuals determine length)
+        # visual_fps = 25.0
+        # audio_fps = sample_rate / hop_length (e.g. 16000/640 = 25)
+        # scale = audio_fps / visual_fps
+        audio_vae = self.tts_model.audio_vae
+        audio_fps = audio_vae.sample_rate / audio_vae.hop_length
+        scale_factor = audio_fps / 25.0
+        
+        target_len = int(lip_feats.shape[1] * scale_factor)
+        
+        # 4. Resample
+        lip_feats = self._resample_visuals(lip_feats, target_len, mode='nearest')
+        face_feats = self._resample_visuals(face_feats, target_len, mode='linear')
         # ---------------------------------------------------
 
         try:
