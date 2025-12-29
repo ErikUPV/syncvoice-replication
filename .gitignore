@@ -1,4 +1,6 @@
 audios/
+*.mp4
+*.mpg
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
