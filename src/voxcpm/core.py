@@ -238,13 +238,14 @@ class VoxCPM:
         if lip_feats.ndim == 3: lip_feats = lip_feats.unsqueeze(0)
         if face_feats.ndim == 2: face_feats = face_feats.unsqueeze(0)
         
+        
         # 3. Calculate Target Audio Length (visuals determine length)
         # visual_fps = 25.0
         # audio_fps = sample_rate / hop_length (e.g. 16000/640 = 25)
         # scale = audio_fps / visual_fps
         audio_vae = self.tts_model.audio_vae
         audio_fps = audio_vae.sample_rate / audio_vae.hop_length
-        scale_factor = audio_fps / 25.0
+        scale_factor = audio_fps / 25.0 * 4
         
         target_len = int(lip_feats.shape[1] * scale_factor)
         
