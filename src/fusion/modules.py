@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from pydantic import BaseModel
 
-class VisualAdapterConfig:
+class VisualAdapterConfig(BaseModel):
     face_dim: int = 512  # Dimensión de las características faciales
     lip_dim: int = 256   # Dimensión de las características de los labios
     bottleneck_dim: int = 128  # Dimensión del cuello de botella
