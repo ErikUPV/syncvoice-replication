@@ -44,7 +44,7 @@ from ..modules.locdit import CfmConfig, UnifiedCFM, VoxCPMLocDiT
 from ..modules.locenc import VoxCPMLocEnc
 from ..modules.minicpm4 import MiniCPM4Config, MiniCPMModel
 from .utils import get_dtype, mask_multichar_chinese_tokens
-from ...fusion.modules import LipEncoder, VisualAdapter, VisualAdapterConfig
+from fusion.modules import LipEncoder, VisualAdapter, VisualAdapterConfig
 
 
 class VoxCPMEncoderConfig(BaseModel):
