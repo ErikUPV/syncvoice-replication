@@ -283,7 +283,8 @@ class VoxCPMModel(nn.Module):
         video_feats = torch.cat([lip_emb, face_feats], dim=-1)
         video_adapted = self.visual_adapter(video_feats)  # [B, T_video, hidden_size]
         
-        B, T_total, _ = audio_mask.shape
+        print(audio_mask.shape)
+        B, T_total = audio_mask.shape
         visual_cond = torch.zeros((B, T_total, video_adapted.shape[-1]), device=self.device, dtype=video_adapted.dtype)
 
         for i in range(B):
