@@ -54,7 +54,7 @@ parser = argparse.ArgumentParser()
 # parser.add_argument('--accents', nargs='*', default=None, help='List of accents to filter by')
 parser.add_argument('--output_dir', type=str, required=True, help="Directory in which to save the data")
 parser.add_argument('--data_root', type=str, required=True, help='Root directory for audio files')
-parser.add_argument('--valid_samples', type=int, help="Number of samples for the validation split (default: 200)", default=200)
+parser.add_argument('--valid_speakers', type=int, help="Number of samples for the validation split (default: 200)", default=1)
 
 args = parser.parse_args()
 
@@ -69,10 +69,12 @@ for spkr in os.listdir(f"{args.data_root}/rois"):
 
 ids = set(ids)
 
-samples = []
+samples = {}
 dirs =  ['align', 'audio', 'face_feats', 'rois', 'speaker_embeddings']
 for id, spkr in tqdm(ids, desc="Processing samples"):
-        samples.append({
+    if spkr not in samples:
+        samples[spkr] = []
+    samples[spkr].append({
             "text" : parse_grid_align(f"{args.data_root}/align/{spkr}/{id}.align"),
             "audio" : f"{args.data_root}/audio/{spkr}/{id}.wav",
             "duration" : get_audio_duration(f"{args.data_root}/audio/{spkr}/{id}.wav"),

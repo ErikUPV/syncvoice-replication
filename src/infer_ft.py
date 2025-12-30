@@ -165,7 +165,7 @@ def main():
         sf.write(str(out_path), audio_np, model.tts_model.sample_rate)
 
         # Combine with original video
-        command = f"ffmpeg -i data/unprocessed/{speaker}/{id}.mpg -i {out_path} -c:v copy -map 0:v:0 -map 1:a:0 -shortest {out_path.replace('wav', '')}_2.mp4 -y"
+        command = f"ffmpeg -i data/unprocessed/{speaker}/{id}.mpg -i {out_path} -c:v copy -map 0:v:0 -map 1:a:0 -shortest {out_path.replace('wav', 'mp4')}"
         subprocess.run(command, shell=True, check=True)
 
         print(f"[FT Inference] Saved to: {out_path}, duration: {len(audio_np) / model.tts_model.sample_rate:.2f}s")
