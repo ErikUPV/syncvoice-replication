@@ -257,8 +257,8 @@ class VoxCPMModel(nn.Module):
         position_ids: torch.Tensor,
         labels: torch.Tensor,
         lip_feats: torch.Tensor,   # [B, T_video, 96, 96]
-        face_feats: torch.Tensor,  # [B, T_video, 512]
         lip_mask: torch.Tensor,    # [B, T_video]
+        face_feats: torch.Tensor,  # [B, T_video, 512]
         *,
         progress: float = 0.0,
         sample_generate: bool = False,

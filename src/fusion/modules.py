@@ -57,6 +57,7 @@ class LipEncoder(nn.Module):
 
     def forward(self, x, mask):
         print(mask.shape)
+        print(mask)
         m = mask.unsqueeze(1).unsqueeze(-1).unsqueeze(-1).float() # [B, 1, T, 1, 1]
 
         # x: [B, T, 96, 96]
