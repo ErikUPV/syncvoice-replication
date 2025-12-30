@@ -185,6 +185,7 @@ class AudioFeatureProcessingPacker:
             # Append new aligned visual features
             packed_lips_list.append(packed_lips)
             packed_face_list.append(packed_face)
+            packed_lip_mask_list.append(packed_lip_mask)
             
             lengths.append(packed_text.shape[0])
 

@@ -227,7 +227,7 @@ class BatchProcessor:
             is_prompts=batch["is_prompts"],
             lip_tokens_list=lip_feats_list,
             face_tokens_list=face_feats_list,
-            lip_mask=lip_mask,
+            lip_mask_list=lip_mask,
         )
 
         # packed["spk_embs"] = batch["spk_embs"].to(self.device)
