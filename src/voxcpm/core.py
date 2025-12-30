@@ -7,6 +7,7 @@ from huggingface_hub import snapshot_download
 from .model.voxcpm import VoxCPMModel, LoRAConfig
 import torch
 import torch.nn.functional as F
+import torchvision.transforms.functional as TF
 
 class VoxCPM:
     def __init__(self,
@@ -153,6 +154,10 @@ class VoxCPM:
             tensor_in = tensor.transpose(1, 2) # -> [B, D, T]
             tensor_out = F.interpolate(tensor_in, size=target_len, mode='linear', align_corners=False)
             return tensor_out.transpose(1, 2) # -> [B, target_len, D]
+        elif mode == "bilinear": #tensor in is [B, T, H, W]
+            tensor_in = tensor.permute(0, 3, 1, 2) # -> [B, W, T, H]
+            tensor_out = F.interpolate(tensor_in, size=(target_len, tensor.shape[3]), mode='bilinear', align_corners=False)
+            return tensor_out.permute(0, 2, 3, 1) # -> [B, target_len, H, W]
         return tensor
 
     def _generate(self, 
@@ -250,7 +255,7 @@ class VoxCPM:
         target_len = int(lip_feats.shape[1] * scale_factor)  // self.tts_model.patch_size 
         
         # 4. Resample
-        lip_feats = self._resample_visuals(lip_feats, target_len, mode='linear')
+        lip_feats = self._resample_visuals(lip_feats, target_len, mode='bilinear')
         face_feats = self._resample_visuals(face_feats, target_len, mode='linear')
         # ---------------------------------------------------
 
