@@ -186,6 +186,7 @@ class VoxCPMModel(nn.Module):
         self.audio_vae = audio_vae
         self.chunk_size = audio_vae.chunk_size
         self.sample_rate = audio_vae.sample_rate
+        self.audio_vae.eval()
 
         # Visual Adapter
         self.lip_encoder = LipEncoder(out_dim=config.va_config.lip_dim)
@@ -257,6 +258,7 @@ class VoxCPMModel(nn.Module):
         labels: torch.Tensor,
         lip_feats: torch.Tensor,   # [B, T_video, 96, 96]
         face_feats: torch.Tensor,  # [B, T_video, 512]
+        lip_mask: torch.Tensor,    # [B, T_video]
         *,
         progress: float = 0.0,
         sample_generate: bool = False,
@@ -272,9 +274,10 @@ class VoxCPMModel(nn.Module):
 
         lip_feats = lip_feats.to(self.device, dtype=self._dtype())
         face_feats = face_feats.to(self.device, dtype=self._dtype())
+        lip_mask = lip_mask.to(self.device, dtype=torch.bool)
 
 
-        lip_emb = self.lip_encoder(lip_feats)
+        lip_emb = self.lip_encoder(lip_feats, lip_mask)
 
         # lip_emb = self._resample_visuals(lip_emb, audio_feats.shape[1], mode='linear')
         # face_feats = self._resample_visuals(face_feats, audio_feats.shape[1], mode='linear')

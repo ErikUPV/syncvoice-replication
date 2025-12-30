@@ -39,7 +39,7 @@ class LipEncoder(nn.Module):
         super().__init__()
         # Simple ResNet-like 3D frontend
         # Input: [B, 1, T, 96, 96]
-        self.conv1 = nn.Conv3d(1, 64, kernel_size=(5, 7, 7), stride=(1, 2, 2), padding=(2, 3, 3), bias=False)
+        self.conv1 = nn.Conv3d(1, 64, kernel_size=(5, 7, 7), stride=(1, 2, 2), padding=(2, 3, 3), bias=False) # 
         self.bn1 = nn.BatchNorm3d(64)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool3d(kernel_size=(1, 3, 3), stride=(1, 2, 2), padding=(0, 1, 1))
@@ -55,22 +55,26 @@ class LipEncoder(nn.Module):
     def _make_layer(self, in_planes, planes):
         return BasicBlock3D(in_planes, planes, stride=1)
 
-    def forward(self, x):
+    def forward(self, x, mask):
+        m = mask.unsqueeze(1).unsqueeze(-1).unsqueeze(-1).float() # [B, 1, T, 1, 1]
+
         # x: [B, T, 96, 96]
         x = x.unsqueeze(1) # [B, 1, T, 96, 96]
+        x = x * m
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
         x = self.maxpool(x)
 
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x) # [B, out_dim, T, H', W']
+        x = self.layer1(x) * m
+        x = self.layer2(x) * m
+        x = self.layer3(x) * m
+        x = self.layer4(x) * m# [B, out_dim, T, H', W']
 
         x = self.avgpool(x) # [B, out_dim, T, 1, 1]
         x = x.squeeze(-1).squeeze(-1) # [B, out_dim, T]
         x = x.transpose(1, 2) # [B, T, out_dim]
+        x = x * mask.unsqueeze(-1).float()
         return x
     
 class BasicBlock3D(nn.Module):
