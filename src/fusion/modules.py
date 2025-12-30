@@ -66,6 +66,8 @@ class LipEncoder(nn.Module):
         x = self.relu(x)
         x = self.maxpool(x)
 
+        x = x * m
+
         x = self.layer1(x) * m
         x = self.layer2(x) * m
         x = self.layer3(x) * m
