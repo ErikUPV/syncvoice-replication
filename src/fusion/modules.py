@@ -56,7 +56,7 @@ class LipEncoder(nn.Module):
         return BasicBlock3D(in_planes, planes, stride=1)
 
     def forward(self, x, mask):
-        m = mask.unsqueeze(1).unsqueeze(-1).unsqueeze(-1).float() # [B, 1, T, 1, 1]
+        m = mask.unsqueeze(1).unsqueeze(-1).unsqueeze(-1).to(self.device, self.dtype) # [B, 1, T, 1, 1]
 
         # x: [B, T, 96, 96]
         x = x.unsqueeze(1) # [B, 1, T, 96, 96]
@@ -76,7 +76,7 @@ class LipEncoder(nn.Module):
         x = self.avgpool(x) # [B, out_dim, T, 1, 1]
         x = x.squeeze(-1).squeeze(-1) # [B, out_dim, T]
         x = x.transpose(1, 2) # [B, T, out_dim]
-        x = x * mask.unsqueeze(-1).float()
+        x = x * mask.unsqueeze(-1).to(self.device, self.dtype)
         return x
     
 class BasicBlock3D(nn.Module):
