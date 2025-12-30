@@ -160,7 +160,7 @@ def main():
             denoise=False,
         )
 
-        out_path = Path(f"{args.output}/{speaker}/{id}.wav")
+        out_path = f"{args.output}/{speaker}/{id}.wav"
         out_path.parent.mkdir(parents=True, exist_ok=True)
         sf.write(str(out_path), audio_np, model.tts_model.sample_rate)
 
