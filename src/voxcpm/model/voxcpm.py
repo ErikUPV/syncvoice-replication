@@ -272,7 +272,6 @@ class VoxCPMModel(nn.Module):
         lip_feats = lip_feats.to(self.device, dtype=self._dtype())
         face_feats = face_feats.to(self.device, dtype=self._dtype())
 
-        print(lip_feats.shape, face_feats.shape)
 
         lip_emb = self.lip_encoder(lip_feats)
 
@@ -283,14 +282,12 @@ class VoxCPMModel(nn.Module):
         video_feats = torch.cat([lip_emb, face_feats], dim=-1)
         video_adapted = self.visual_adapter(video_feats)  # [B, T_video, hidden_size]
         
-        print(audio_mask.shape)
         B, T_total = audio_mask.shape
         visual_cond = torch.zeros((B, T_total, video_adapted.shape[-1]), device=self.device, dtype=video_adapted.dtype)
 
         for i in range(B):
             n_audio_tokens = int(audio_mask[i].sum().item())
 
-            print(n_audio_tokens)
 
             curr_vid = video_adapted[i] # [T_video, hidden_size]
 
@@ -299,7 +296,6 @@ class VoxCPMModel(nn.Module):
             print(f"start idx: {audio_start_idx}")
             visual_cond[i, audio_start_idx:audio_start_idx + n_audio_tokens, :] = curr_vid
         
-        print(visual_cond.shape)
 
         B, T, P, D = audio_feats.shape
         feat_embed = self.feat_encoder(audio_feats)
