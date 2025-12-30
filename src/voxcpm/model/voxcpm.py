@@ -298,7 +298,7 @@ class VoxCPMModel(nn.Module):
             # Solo tomamos los frames válidos
             curr_vid = video_adapted[i, :n_visual_valid, :]
 
-            curr_vid = video_adapted[i] # [T_video, hidden_size]
+            # curr_vid = video_adapted[i] # [T_video, hidden_size]
 
             curr_vid = self._resample_visuals(curr_vid.unsqueeze(0), n_audio_tokens, mode='linear').squeeze(0)
             audio_start_idx = (audio_mask[i] == 1).nonzero(as_tuple=True)[0][0]
