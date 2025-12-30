@@ -28,6 +28,7 @@ import torchaudio
 import warnings
 from einops import rearrange
 from pydantic import BaseModel
+from voxcpm.modules.audiovae import audio_vae
 
 try:
     from safetensors.torch import load_file
@@ -848,6 +849,11 @@ class VoxCPMModel(nn.Module):
             # 2. Concat & Adapt
             video_feats = torch.cat([lip_emb, face_feats], dim=-1)
             visual_cond_seq = self.visual_adapter(video_feats) # [B, T_vis, H]
+
+            # 3. Resample
+            audio_fps = self.audio_vae.sample_rate / self.audio_vae.hop_length
+            scale_factor = audio_fps / 25.0 / 4 
+            visual_cond_seq = self._resample_visuals(visual_cond_seq, int(visual_cond_seq.shape[-1] * scale_factor), mode='linear')
             
             # The length of generation is strictly the length of visual_cond_seq
             max_len = visual_cond_seq.shape[1]
