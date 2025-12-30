@@ -334,8 +334,8 @@ class AudioFeatureProcessingPacker:
         labels = torch.zeros(text_length + audio_length + 1).type(torch.int32).to(text_token.device)
         labels[-2] = 1
 
-        packed_lips = torch.cat([lip_pad, aligned_lips, lip_pad[0:1]], dim=0)
-        packed_face = torch.cat([face_pad, aligned_face, face_pad[0:1]], dim=0)
+        packed_lips = aligned_lips #torch.cat([lip_pad, aligned_lips, lip_pad[0:1]], dim=0)
+        packed_face = aligned_face #torch.cat([face_pad, aligned_face, face_pad[0:1]], dim=0)
 
         return (
             text_token_info,

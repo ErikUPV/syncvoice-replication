@@ -279,16 +279,23 @@ class VoxCPMModel(nn.Module):
         # lip_emb = self._resample_visuals(lip_emb, audio_feats.shape[1], mode='linear')
         # face_feats = self._resample_visuals(face_feats, audio_feats.shape[1], mode='linear')
         
-        # 2. Concatenate: [B, T, lip_dim + face_dim]
+        # 2. Concatenate: [B, T_video, lip_dim + face_dim]
         video_feats = torch.cat([lip_emb, face_feats], dim=-1)
-
-    
+        video_adapted = self.visual_adapter(video_feats)  # [B, T_video, hidden_size]
         
-        # 3. Adapter Projection: [B, T, hidden_size]
-        # We multiply by audio_mask to ensure no visual info leaks into text prompt area
-        visual_cond = self.visual_adapter(video_feats) * audio_mask.unsqueeze(-1)
+        B, T_total, _ = audio_mask.shape
+        visual_cond = torch.zeros((B, T_total, video_adapted.shape[-1]), device=self.device, dtype=video_adapted.dtype)
 
-        visual_cond = self._resample_visuals(visual_cond, audio_feats.shape[1], mode='linear')
+        for i in range(B):
+            n_audio_tokens = int(audio_mask[i].sum().item())
+
+            curr_vid = video_adapted[i] # [T_video, hidden_size]
+
+            curr_vid = self._resample_visuals(curr_vid.unsqueeze(0), n_audio_tokens, mode='linear').squeeze(0)
+            audio_start_idx = (audio_mask[i] == 1).nonzero(as_tuple=True)[0][0]
+            visual_cond[i, audio_start_idx:audio_start_idx + n_audio_tokens, :] = curr_vid
+        
+        print(visual_cond.shape)
 
         B, T, P, D = audio_feats.shape
         feat_embed = self.feat_encoder(audio_feats)
