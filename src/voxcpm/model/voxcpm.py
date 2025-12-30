@@ -279,6 +279,7 @@ class VoxCPMModel(nn.Module):
 
         lip_emb = self.lip_encoder(lip_feats, lip_mask)
 
+        lip_lengths = [lip_mask[i].sum() for i in range(lip_mask.shape[0])]
         # lip_emb = self._resample_visuals(lip_emb, audio_feats.shape[1], mode='linear')
         # face_feats = self._resample_visuals(face_feats, audio_feats.shape[1], mode='linear')
         
@@ -291,7 +292,11 @@ class VoxCPMModel(nn.Module):
 
         for i in range(B):
             n_audio_tokens = int(audio_mask[i].sum().item())
+            n_visual_valid = int(lip_lengths[i].item()) # Longitud REAL del video
 
+            # RECORTAR ANTES DE RESAMPLEAR
+            # Solo tomamos los frames válidos
+            curr_vid = video_adapted[i, :n_visual_valid, :]
 
             curr_vid = video_adapted[i] # [T_video, hidden_size]
 
