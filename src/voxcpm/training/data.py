@@ -160,7 +160,7 @@ class HFVoxCPMDataset(TorchDataset):
 
         lip_feats_list = [sample["lip_feats"] for sample in batch]
         # lip_padded = cls.pad_sequences(lip_feats_list, pad_value=-100.0)
-        lip_padded = pad_sequence(lip_feats_list, batch_first=True, padding_value=-100.0)
+        lip_padded = pad_sequence(lip_feats_list, batch_first=True, padding_value=0.0)
         face_feats_list = [sample["face_feats"] for sample in batch]
         face_padded = pad_sequence(face_feats_list, batch_first=True, padding_value=-100.0)
 
