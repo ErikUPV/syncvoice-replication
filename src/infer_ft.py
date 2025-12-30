@@ -41,6 +41,7 @@ from tqdm import tqdm
 import os
 import random as rm
 import subprocess
+from dataset import parse_grid_align
 
 def parse_args():
     parser = argparse.ArgumentParser("VoxCPM full-finetune inference test (no LoRA)")
@@ -136,18 +137,20 @@ def main():
         chosen_ref = rm.choice([x for x in os.listdir(speaker_dir) if x.endswith('.wav') and not x.startswith(id)])
         prompt_wav_path = f'data/audio/{speaker}/{chosen_ref}'
 
+        prompt_text = parse_grid_align(f"data/align/{speaker}/{chosen_ref.replace('.wav','.align')}")
+
         # prompt_wav_path = args.prompt_audio if args.prompt_audio else None
         # prompt_text = args.prompt_text if args.prompt_text else None
 
         print(f"[FT Inference] Synthesizing: text='{text}'")
         if prompt_wav_path:
             print(f"[FT Inference] Using reference audio: {prompt_wav_path}")
-            print(f"[FT Inference] Reference text: {text}")
+            print(f"[FT Inference] Reference text: {prompt_text}")
 
         audio_np = model.generate(
             text=text,
             prompt_wav_path=prompt_wav_path,
-            prompt_text=None,
+            prompt_text=prompt_text,
             lip_path=lip_feats,
             face_path=face_feats,
             cfg_value=args.cfg_value,
