@@ -217,6 +217,7 @@ class AudioFeatureProcessingPacker:
             # Lip Feats: [T, 96, 96] -> Padded on T
             lip_feats_batch = torch.stack([pad_tensor(l, lip_max_len, pad_value=0.0) for l in packed_lips_list], dim=0)
             lip_mask_batch = torch.stack([pad_tensor(m, lip_max_len, pad_value=0) for m in packed_lip_mask_list], dim=0)
+            print(f"pack_data: lip_mask_batch shape: {lip_mask_batch.shape}")
             
             # Face Feats: [T, 512] -> Padded on T
             face_feats_batch = torch.stack([pad_tensor(f, face_max_len, pad_value=0.0) for f in packed_face_list], dim=0)
@@ -250,7 +251,7 @@ class AudioFeatureProcessingPacker:
             labels_batch = torch.zeros_like(text_tokens_batch)
             audio_task_ids_batch = torch.zeros_like(text_tokens_batch)
             audio_dataset_ids_batch = torch.zeros_like(text_tokens_batch)
-            lip_mask_batch = torch.zeros((0, self.max_len, 96, 96), dtype=torch.float32, device=device)
+            lip_mask_batch = torch.zeros((0, self.max_len), dtype=torch.float32, device=device)
             position_ids = torch.zeros_like(text_tokens_batch)
 
         audio_duration_consumed = audio_duration_consumed.to(torch.long)
