@@ -12,7 +12,7 @@ class VisualAdapter(nn.Module):
     def __init__(self, visual_dim, text_dim, bottleneck_dim=128):
         super().__init__()
         # "bottleneck structure with LayerNorm, GELU" 
-        self.norm = nn.LayerNorm(visual_dim)
+        self.norm = nn.RMSNorm(visual_dim)
         
         self.projection = nn.Sequential(
             nn.Linear(visual_dim, bottleneck_dim),
@@ -20,10 +20,6 @@ class VisualAdapter(nn.Module):
             nn.Linear(bottleneck_dim, text_dim) # Proyecta al espacio del texto
         )
         
-        # Para la conexión residual si las dimensiones no coinciden, 
-        # a veces se usa una proyección lineal simple, pero el paper dice
-        # "residual connection" en el contexto del adaptador. 
-        # Asumiremos que es una proyección directa sumada a la salida proyectada.
         self.residual_proj = nn.Linear(visual_dim, text_dim) if visual_dim != text_dim else nn.Identity()
 
     def forward(self, x):
@@ -31,7 +27,7 @@ class VisualAdapter(nn.Module):
         residual = self.residual_proj(x)
         x = self.norm(x)
         x = self.projection(x)
-        return x + residual # "residual connection"
+        return x + residual 
     
     
     # Supongamos que ya tienes los modelos cargados
@@ -56,14 +52,7 @@ class LipEncoder(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool3d((None, 1, 1))
 
     def _make_layer(self, in_planes, planes):
-        return nn.Sequential(
-            nn.Conv3d(in_planes, planes, kernel_size=3, stride=1, padding=1, bias=False),
-            nn.BatchNorm3d(planes),
-            nn.ReLU(inplace=True),
-            nn.Conv3d(planes, planes, kernel_size=3, stride=1, padding=1, bias=False),
-            nn.BatchNorm3d(planes),
-            nn.ReLU(inplace=True),
-        )
+        return BasicBlock3D(in_planes, planes, stride=1)
 
     def forward(self, x):
         # x: [B, T, 96, 96]
@@ -82,3 +71,39 @@ class LipEncoder(nn.Module):
         x = x.squeeze(-1).squeeze(-1) # [B, out_dim, T]
         x = x.transpose(1, 2) # [B, T, out_dim]
         return x
+    
+class BasicBlock3D(nn.Module):
+    def __init__(self, inplanes, planes, stride=1):
+        super().__init__()
+        self.conv1 = nn.Conv3d(inplanes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm3d(planes)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = nn.Conv3d(planes, planes, kernel_size=3, stride=1, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm3d(planes)
+        
+        # Esta es la conexión residual: si las dimensiones cambian (stride > 1),
+        # necesitamos proyectar la identidad para que se pueda sumar.
+        self.downsample = None
+        if stride != 1 or inplanes != planes:
+            self.downsample = nn.Sequential(
+                nn.Conv3d(inplanes, planes, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm3d(planes),
+            )
+
+    def forward(self, x):
+        identity = x  
+
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
+
+        if self.downsample is not None:
+            identity = self.downsample(x) 
+
+        out += identity  
+        out = self.relu(out)
+
+        return out

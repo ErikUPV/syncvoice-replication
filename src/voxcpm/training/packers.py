@@ -296,8 +296,8 @@ class AudioFeatureProcessingPacker:
         audio_feat_info = audio_feat_info.squeeze(0)
         audio_length = audio_feat_info.shape[0]
 
-        aligned_lips = self._resample_visuals(lip_token, audio_length, mode='nearest')
-        aligned_face = self._resample_visuals(face_token, audio_length, mode='linear')
+        aligned_lips = lip_token # self._resample_visuals(lip_token, audio_length, mode='nearest')
+        aligned_face = face_token # self._resample_visuals(face_token, audio_length, mode='linear')
         
         lip_pad = torch.zeros((text_length, *aligned_lips.shape[1:]), dtype=aligned_lips.dtype, device=audio_token.device)
         face_pad = torch.zeros((text_length, *aligned_face.shape[1:]), dtype=aligned_face.dtype, device=audio_token.device)
