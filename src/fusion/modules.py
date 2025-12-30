@@ -9,7 +9,7 @@ class VisualAdapterConfig(BaseModel):
     bottleneck_dim: int = 128  # Dimensión del cuello de botella
 
 class VisualAdapter(nn.Module):
-    def __init__(self, visual_dim, text_dim, bottleneck_dim=128):
+    def __init__(self, visual_dim, text_dim, bottleneck_dim=128, dropout=0.1):
         super().__init__()
         # "bottleneck structure with LayerNorm, GELU" 
         self.norm = nn.RMSNorm(visual_dim)
@@ -17,6 +17,7 @@ class VisualAdapter(nn.Module):
         self.projection = nn.Sequential(
             nn.Linear(visual_dim, bottleneck_dim),
             nn.GELU(),
+            nn.Dropout(dropout),
             nn.Linear(bottleneck_dim, text_dim) # Proyecta al espacio del texto
         )
         
