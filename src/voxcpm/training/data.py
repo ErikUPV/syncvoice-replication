@@ -217,6 +217,7 @@ class BatchProcessor:
         dataset_ids = batch["dataset_ids"].to(self.device)
         lip_feats_list = batch["lip_feats"].to(self.device)
         face_feats_list = batch["face_feats"].to(self.device)
+        lip_mask = batch["lip_mask"].to(self.device)
 
         packed = self.packer(
             audio_tokens=audio_tokens,
@@ -226,6 +227,7 @@ class BatchProcessor:
             is_prompts=batch["is_prompts"],
             lip_tokens_list=lip_feats_list,
             face_tokens_list=face_feats_list,
+            lip_mask=lip_mask,
         )
 
         # packed["spk_embs"] = batch["spk_embs"].to(self.device)

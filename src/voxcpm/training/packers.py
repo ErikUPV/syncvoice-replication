@@ -112,6 +112,7 @@ class AudioFeatureProcessingPacker:
         # NEW ARGUMENTS: Lists of raw visual tensors from the batch
         lip_tokens_list: List[torch.Tensor],
         face_tokens_list: List[torch.Tensor],
+        lip_mask_list: List[torch.Tensor],
     ) -> Dict[str, torch.Tensor]:
         """
         Padding-based batching with Visual Features support.
@@ -133,6 +134,7 @@ class AudioFeatureProcessingPacker:
         # New output lists for visuals
         packed_lips_list: List[torch.Tensor] = []
         packed_face_list: List[torch.Tensor] = []
+        packed_lip_mask_list: List[torch.Tensor] = []
         
         lengths: List[int] = []
 
@@ -140,8 +142,8 @@ class AudioFeatureProcessingPacker:
         text_token_consumed = torch.zeros(dataset_cnt, dtype=torch.float32, device=device)
 
         # Loop through batch, now including visual tokens
-        for audio_token, text_token, task_id, dataset_idx, is_prompt, lip_token, face_token in zip(
-            audio_tokens, text_tokens, task_ids.tolist(), dataset_ids.tolist(), is_prompts, lip_tokens_list, face_tokens_list
+        for audio_token, text_token, task_id, dataset_idx, is_prompt, lip_token, face_token, lip_mask in zip(
+            audio_tokens, text_tokens, task_ids.tolist(), dataset_ids.tolist(), is_prompts, lip_tokens_list, face_tokens_list, lip_mask_list
         ):
             unpad_audio_token = self.unpad_audio_tokens(audio_token).to(torch.float32)
             unpad_text_token = self.unpad_text_tokens(text_token)
@@ -158,8 +160,9 @@ class AudioFeatureProcessingPacker:
                 audio_duration,
                 text_token_count,
                 packed_lips,   # Catch new return
-                packed_face    # Catch new return
-            ) = self.process_functions[usage](unpad_audio_token, unpad_text_token, lip_token, face_token, is_prompt)
+                packed_face,   # Catch new return
+                packed_lip_mask # Catch new return
+            ) = self.process_functions[usage](unpad_audio_token, unpad_text_token, lip_token, face_token, lip_mask, is_prompt)
 
             audio_duration_consumed[dataset_idx] += audio_duration
             text_token_consumed[dataset_idx] += text_token_count
@@ -212,6 +215,7 @@ class AudioFeatureProcessingPacker:
             
             # Lip Feats: [T, 96, 96] -> Padded on T
             lip_feats_batch = torch.stack([pad_tensor(l, lip_max_len, pad_value=0.0) for l in packed_lips_list], dim=0)
+            lip_mask_batch = torch.stack([pad_tensor(m, lip_max_len, pad_value=0) for m in packed_lip_mask_list], dim=0)
             
             # Face Feats: [T, 512] -> Padded on T
             face_feats_batch = torch.stack([pad_tensor(f, face_max_len, pad_value=0.0) for f in packed_face_list], dim=0)
@@ -245,6 +249,7 @@ class AudioFeatureProcessingPacker:
             labels_batch = torch.zeros_like(text_tokens_batch)
             audio_task_ids_batch = torch.zeros_like(text_tokens_batch)
             audio_dataset_ids_batch = torch.zeros_like(text_tokens_batch)
+            lip_mask_batch = torch.zeros((0, self.max_len, 96, 96), dtype=torch.float32, device=device)
             position_ids = torch.zeros_like(text_tokens_batch)
 
         audio_duration_consumed = audio_duration_consumed.to(torch.long)
@@ -254,6 +259,7 @@ class AudioFeatureProcessingPacker:
             "text_tokens": text_tokens_batch,
             "audio_feats": audio_feats_batch,
             "lip_feats": lip_feats_batch,    # NEW
+            "lip_mask": lip_mask_batch,      # NEW
             "face_feats": face_feats_batch,  # NEW
             "text_mask": text_mask_batch,
             "audio_mask": audio_mask_batch,
@@ -280,7 +286,7 @@ class AudioFeatureProcessingPacker:
         audio_feats = rearrange(audio_feats, "b (t p) c -> b t p c", p=self.patch_size)
         return audio_feats, audio_duration
 
-    def process_tts_data(self, audio_token: torch.Tensor, text_token: torch.Tensor, lip_token: torch.Tensor, face_token: torch.Tensor, is_prompt: bool = False):
+    def process_tts_data(self, audio_token: torch.Tensor, text_token: torch.Tensor, lip_token: torch.Tensor, face_token: torch.Tensor, lip_mask: torch.Tensor, is_prompt: bool = False):
         text_token_info = torch.cat(
             [
                 text_token,
@@ -347,6 +353,7 @@ class AudioFeatureProcessingPacker:
             audio_duration,
             text_token_count,
             packed_lips,
-            packed_face
+            packed_face,
+            lip_mask
         )
 
