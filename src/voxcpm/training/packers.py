@@ -191,8 +191,11 @@ class AudioFeatureProcessingPacker:
         else:
             max_len = self.max_len
 
+        lip_max_len = max([l.shape[0] for l in packed_lips_list]) if packed_lips_list else max_len
+        face_max_len = max([f.shape[0] for f in packed_face_list]) if packed_face_list else max_len
+
         # Unified helper for padding tensors of shape [T, ...] on the first dimension
-        def pad_tensor(x: torch.Tensor, pad_value: float = 0.0) -> torch.Tensor:
+        def pad_tensor(x: torch.Tensor, max_len: int, pad_value: float = 0.0) -> torch.Tensor:
             if x.size(0) >= max_len:
                 return x[: max_len]
             # Calculate shape of padding: (pad_len, dim1, dim2, ...)
@@ -201,24 +204,23 @@ class AudioFeatureProcessingPacker:
             return torch.cat([x, pad], dim=0)
 
         if lengths:
-            text_tokens_batch = torch.stack([pad_tensor(t, pad_value=0) for t in text_tokens_list], dim=0)
-            text_mask_batch = torch.stack([pad_tensor(m, pad_value=0) for m in text_mask_list], dim=0)
+            text_tokens_batch = torch.stack([pad_tensor(t, max_len, pad_value=0) for t in text_tokens_list], dim=0)
+            text_mask_batch = torch.stack([pad_tensor(m, max_len, pad_value=0) for m in text_mask_list], dim=0)
             
             # Audio Feats: [T, Patch, D] -> Padded on T
-            audio_feats_batch = torch.stack([pad_tensor(f) for f in audio_feats_list], dim=0)
+            audio_feats_batch = torch.stack([pad_tensor(f, max_len) for f in audio_feats_list], dim=0)
             
             # Lip Feats: [T, 96, 96] -> Padded on T
-            lip_feats_batch = torch.stack([pad_tensor(l, pad_value=0.0) for l in packed_lips_list], dim=0)
+            lip_feats_batch = torch.stack([pad_tensor(l, lip_max_len, pad_value=0.0) for l in packed_lips_list], dim=0)
             
             # Face Feats: [T, 512] -> Padded on T
-            face_feats_batch = torch.stack([pad_tensor(f, pad_value=0.0) for f in packed_face_list], dim=0)
+            face_feats_batch = torch.stack([pad_tensor(f, face_max_len, pad_value=0.0) for f in packed_face_list], dim=0)
 
-            audio_mask_batch = torch.stack([pad_tensor(m, pad_value=0) for m in audio_mask_list], dim=0)
-            loss_mask_batch = torch.stack([pad_tensor(m, pad_value=0) for m in loss_mask_list], dim=0)
-            labels_batch = torch.stack([pad_tensor(l, pad_value=0) for l in labels_list], dim=0)
-            audio_task_ids_batch = torch.stack([pad_tensor(t, pad_value=0) for t in audio_task_ids_list], dim=0)
-            audio_dataset_ids_batch = torch.stack([pad_tensor(d, pad_value=0) for d in audio_dataset_ids_list], dim=0)
-
+            audio_mask_batch = torch.stack([pad_tensor(m, max_len, pad_value=0) for m in audio_mask_list], dim=0)
+            loss_mask_batch = torch.stack([pad_tensor(m, max_len, pad_value=0) for m in loss_mask_list], dim=0)
+            labels_batch = torch.stack([pad_tensor(l, max_len, pad_value=0) for l in labels_list], dim=0)
+            audio_task_ids_batch = torch.stack([pad_tensor(t, max_len, pad_value=0) for t in audio_task_ids_list], dim=0)
+            audio_dataset_ids_batch = torch.stack([pad_tensor(d, max_len, pad_value=0) for d in audio_dataset_ids_list], dim=0)
             # Position ids generation
             position_ids_list = []
             for L in lengths:
