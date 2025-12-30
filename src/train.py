@@ -262,6 +262,7 @@ def train(
                             processed["position_ids"],
                             processed["labels"],
                             processed["lip_feats"],
+                            processed["lip_mask"],
                             processed["face_feats"],
                             progress=step / max(1, num_iters),
                         )
@@ -332,6 +333,7 @@ def validate(model, val_loader, batch_processor, accelerator, tracker, lambdas):
                     processed["labels"],
                     processed["lip_feats"],
                     processed["face_feats"],
+                    processed["lip_mask"],
                     progress=0.0,
                     sample_generate=False,
                 )
