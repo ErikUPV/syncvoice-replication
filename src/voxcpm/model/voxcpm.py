@@ -852,7 +852,7 @@ class VoxCPMModel(nn.Module):
         visual_cond_seq = None
         if lip_feats is not None and face_feats is not None:
             # 1. Encode
-            lip_emb = self.lip_encoder(lip_feats.to(self.device, dtype=self._dtype()))
+            lip_emb = self.lip_encoder(lip_feats.to(self.device, dtype=self._dtype()), mask=torch.ones(lip_feats.shape[:2], dtype=torch.bool, device=self.device))
             face_feats = face_feats.to(self.device, dtype=self._dtype())
             # 2. Concat & Adapt
             video_feats = torch.cat([lip_emb, face_feats], dim=-1)
