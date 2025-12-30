@@ -276,8 +276,8 @@ class VoxCPMModel(nn.Module):
 
         lip_emb = self.lip_encoder(lip_feats)
 
-        lip_emb = self._resample_visuals(lip_emb, audio_feats.shape[1], mode='linear')
-        face_feats = self._resample_visuals(face_feats, audio_feats.shape[1], mode='linear')
+        # lip_emb = self._resample_visuals(lip_emb, audio_feats.shape[1], mode='linear')
+        # face_feats = self._resample_visuals(face_feats, audio_feats.shape[1], mode='linear')
         
         # 2. Concatenate: [B, T, lip_dim + face_dim]
         video_feats = torch.cat([lip_emb, face_feats], dim=-1)
@@ -287,6 +287,8 @@ class VoxCPMModel(nn.Module):
         # 3. Adapter Projection: [B, T, hidden_size]
         # We multiply by audio_mask to ensure no visual info leaks into text prompt area
         visual_cond = self.visual_adapter(video_feats) * audio_mask.unsqueeze(-1)
+
+        visual_cond = self._resample_visuals(visual_cond, audio_feats.shape[1], mode='linear')
 
         B, T, P, D = audio_feats.shape
         feat_embed = self.feat_encoder(audio_feats)
