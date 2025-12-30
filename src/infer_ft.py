@@ -161,7 +161,7 @@ def main():
         )
 
         out_path = f"{args.output}/{speaker}/{id}.wav"
-        os.makedirs(os.path.dirname(out_path), parents=True, exist_ok=True)
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
         sf.write(str(out_path), audio_np, model.tts_model.sample_rate)
 
         # Combine with original video
