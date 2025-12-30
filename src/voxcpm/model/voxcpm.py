@@ -977,10 +977,10 @@ class VoxCPMModel(nn.Module):
                 if "audio_vae" in name: # freeze VAE weights
                     param.requires_grad = False
                     continue
-                for param in model.base_lm.parameters():
-                    param.requires_grad = False
-                for param in model.residual_lm.parameters(): # freeze residual and main LM weights
-                    param.requires_grad = False
+                # for param in model.base_lm.parameters():
+                #     param.requires_grad = False
+                # for param in model.residual_lm.parameters(): # freeze residual and main LM weights
+                #     param.requires_grad = False
                 if lora_config is not None:
                     if "lora" not in name: # freeze non-LoRA weights
                         param.requires_grad = False

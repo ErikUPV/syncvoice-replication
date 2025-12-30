@@ -8,14 +8,14 @@ num_workers: 4
 num_iters: 20000
 log_interval: 20
 valid_interval: 500
-save_interval: 4000
-learning_rate: 0.00002 
+save_interval: 2000
+learning_rate: 0.00001 
 weight_decay: 0.01
 warmup_steps: 1000
 max_steps: 20000
 max_batch_tokens: 8192  # Example: single batch can have at most 16k tokens, with batch_size=4, each sample can have at most 4096 tokens
-save_path: models/syncvoice_voxcpm_0.00002_frozen
-tensorboard: logs/syncvoice_voxcpm_0.00002_frozen
+save_path: models/syncvoice_voxcpm_0.00001_frozen
+tensorboard: logs/syncvoice_voxcpm_0.00001_frozen
 lambdas:
   loss/diff: 1.0
   loss/stop: 1.0
