@@ -38,7 +38,9 @@ from voxcpm.training import (
 )
 
 from tqdm import tqdm
-
+import os
+import random as rm
+import subprocess
 
 def parse_args():
     parser = argparse.ArgumentParser("VoxCPM full-finetune inference test (no LoRA)")
@@ -128,6 +130,11 @@ def main():
         face_feats = item["face_feats"]
 
         id = lip_feats.split('/')[-1].replace('.pt','')
+        speaker = lip_feats.split('/')[-2]
+
+        speaker_dir = f'data/audio/{speaker}'
+        chosen_ref = rm.choice([x for x in os.listdir(speaker_dir) if x.endswith('.wav') and not x.startswith(id)])
+        prompt_wav_path = f'data/audio/{speaker}/{chosen_ref}'
 
         # prompt_wav_path = args.prompt_audio if args.prompt_audio else None
         # prompt_text = args.prompt_text if args.prompt_text else None
@@ -150,10 +157,13 @@ def main():
             denoise=False,
         )
 
-    # Save audio
-        out_path = Path(f"{args.output}/{id}.wav")
+        out_path = Path(f"{args.output}/{speaker}/{id}.wav")
         out_path.parent.mkdir(parents=True, exist_ok=True)
         sf.write(str(out_path), audio_np, model.tts_model.sample_rate)
+
+        # Combine with original video
+        command = f"ffmpeg -i data/unprocessed/{speaker}/{id}.mpg -i {out_path} -c:v copy -map 0:v:0 -map 1:a:0 -shortest {out_path.replace('wav', 'mp4')}"
+        subprocess.run(command.split(' '), shell=True, check=True)
 
         print(f"[FT Inference] Saved to: {out_path}, duration: {len(audio_np) / model.tts_model.sample_rate:.2f}s")
 

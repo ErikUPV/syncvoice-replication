@@ -61,9 +61,9 @@ class VoxCPM:
             print("Warm up VoxCPMModel...")
             self.generate(
                 text="Hello, this is the first test sentence.",
-                lip_feats=torch.rand([1, 10, 96, 96]),
-                face_feats=torch.rand([1, 10, 512]),
-                max_len=10,
+                lip_feats=torch.rand([1, 40, 96, 96]),
+                face_feats=torch.rand([1, 40, 512]),
+                max_len=40,
             )
 
     @classmethod
