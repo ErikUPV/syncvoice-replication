@@ -54,7 +54,7 @@ parser = argparse.ArgumentParser()
 # parser.add_argument('--accents', nargs='*', default=None, help='List of accents to filter by')
 parser.add_argument('--output_dir', type=str, required=True, help="Directory in which to save the data")
 parser.add_argument('--data_root', type=str, required=True, help='Root directory for audio files')
-parser.add_argument('--valid_speakers', type=int, help="Number of samples for the validation split (default: 200)", default=2)
+# parser.add_argument('--valid_speakers', type=int, help="Number of samples for the validation split (default: 200)", default=2)
 
 args = parser.parse_args()
 
@@ -84,12 +84,15 @@ for id, spkr in tqdm(ids, desc="Processing samples"):
         })
 
 # separate train and valid
+test_speakers = ["s1", "s2", "s20", "s22"]
 train_samples = []
-for speaker in list(samples.keys())[:-args.valid_speakers]:
+for speaker in list(samples.keys()):
+    if speaker in test_speakers:
+        continue
     train_samples.extend(samples[speaker])
 
 valid_samples = []
-for speaker in list(samples.keys())[-args.valid_speakers:]:
+for speaker in test_speakers:
     valid_samples.extend(samples[speaker])
     
 
