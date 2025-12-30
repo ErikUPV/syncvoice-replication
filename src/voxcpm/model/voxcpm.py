@@ -290,10 +290,13 @@ class VoxCPMModel(nn.Module):
         for i in range(B):
             n_audio_tokens = int(audio_mask[i].sum().item())
 
+            print(n_audio_tokens)
+
             curr_vid = video_adapted[i] # [T_video, hidden_size]
 
             curr_vid = self._resample_visuals(curr_vid.unsqueeze(0), n_audio_tokens, mode='linear').squeeze(0)
             audio_start_idx = (audio_mask[i] == 1).nonzero(as_tuple=True)[0][0]
+            print(f"start idx: {audio_start_idx}")
             visual_cond[i, audio_start_idx:audio_start_idx + n_audio_tokens, :] = curr_vid
         
         print(visual_cond.shape)
