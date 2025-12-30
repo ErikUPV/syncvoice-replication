@@ -255,7 +255,7 @@ class VoxCPM:
         target_len = int(lip_feats.shape[1] * scale_factor)  // self.tts_model.patch_size 
         
         # 4. Resample
-        lip_feats = self._resample_visuals(lip_feats, target_len, mode='bilinear')
+        lip_feats = self._resample_visuals(lip_feats, target_len, mode='nearest')
         face_feats = self._resample_visuals(face_feats, target_len, mode='linear')
         # ---------------------------------------------------
 
