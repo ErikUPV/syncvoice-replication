@@ -166,6 +166,7 @@ class HFVoxCPMDataset(TorchDataset):
 
         lengths = [lip_feats_list[i].shape[1] for i in range(len(lip_feats_list))] # [B, T_vis, 96, 96]
         lip_mask = torch.arange(lip_padded.size(1))[None, :] < torch.tensor(lengths)[:, None]
+        print(f"collate_fn: {lip_mask.shape}")
 
         # face_padded = cls.pad_sequences(face_feats_list, pad_value=-100.0)
         # Stack speaker embeddings (they are global vectors)
