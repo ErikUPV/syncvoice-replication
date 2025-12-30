@@ -56,8 +56,6 @@ class LipEncoder(nn.Module):
         return BasicBlock3D(in_planes, planes, stride=1)
 
     def forward(self, x, mask):
-        print(mask.shape)
-        print(mask)
         m = mask.unsqueeze(1).unsqueeze(-1).unsqueeze(-1).float() # [B, 1, T, 1, 1]
 
         # x: [B, T, 96, 96]
