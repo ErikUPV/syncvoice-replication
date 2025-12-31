@@ -910,7 +910,7 @@ class VoxCPMModel(nn.Module):
             if visual_cond_seq is not None:
                 # Get visual condition for current step i
                 if i < visual_cond_seq.shape[1]:
-                    curr_vis = visual_cond_seq[:, i, :] * 4 # [B, H]
+                    curr_vis = visual_cond_seq[:, i, :] # [B, H]
                     dit_hidden = dit_hidden + curr_vis
             
                     print(f"Magnitudes:\n LM to DIT: {dit_hidden_1.abs().mean().item():.4f}, Residual to DIT: {dit_hidden_2.abs().mean().item():.4f}, Visual Cond: {curr_vis.abs().mean().item():.4f}")
