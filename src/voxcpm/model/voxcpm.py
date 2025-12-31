@@ -202,6 +202,8 @@ class VoxCPMModel(nn.Module):
         )
 
         self.multimodal_fusion_proj = nn.Linear(config.dit_config.hidden_dim * 2, config.dit_config.hidden_dim)
+        nn.init.zeros_(self.multimodal_fusion_proj.weight)
+        nn.init.zeros_(self.multimodal_fusion_proj.bias)
 
         if self.lora_config is not None:
             self._apply_lora()
