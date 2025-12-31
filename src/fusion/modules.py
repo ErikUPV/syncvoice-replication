@@ -40,7 +40,7 @@ class LipEncoder(nn.Module):
         # Simple ResNet-like 3D frontend
         # Input: [B, 1, T, 96, 96]
         self.conv1 = nn.Conv3d(1, 64, kernel_size=(5, 7, 7), stride=(1, 2, 2), padding=(2, 3, 3), bias=False) # 
-        self.bn1 = nn.BatchNorm3d(64)
+        self.bn1 = nn.GroupNorm(32, 64)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool3d(kernel_size=(1, 3, 3), stride=(1, 2, 2), padding=(0, 1, 1))
 
@@ -83,10 +83,10 @@ class BasicBlock3D(nn.Module):
     def __init__(self, inplanes, planes, stride=1):
         super().__init__()
         self.conv1 = nn.Conv3d(inplanes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm3d(planes)
+        self.bn1 = nn.GroupNorm(32, planes)
         self.relu = nn.ReLU(inplace=True)
         self.conv2 = nn.Conv3d(planes, planes, kernel_size=3, stride=1, padding=1, bias=False)
-        self.bn2 = nn.BatchNorm3d(planes)
+        self.bn2 = nn.GroupNorm(32, planes)
         
         # Esta es la conexión residual: si las dimensiones cambian (stride > 1),
         # necesitamos proyectar la identidad para que se pueda sumar.

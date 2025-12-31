@@ -165,9 +165,18 @@ def train(
         for name, param in model.named_parameters():
             print(name, param.requires_grad)
 
+    visual_prefixes = ["lip_encoder", "face_encoder", "visual_adapter"]
+
+    visual_params, base_params = [], []
+    for name, param in model.named_parameters():
+        if any(prefix in name for prefix in visual_prefixes):
+            visual_params.append(param)
+        else:
+            base_params.append(param)
+            
+
     optimizer = AdamW(
-        (p for p in model.parameters() if p.requires_grad),
-        lr=learning_rate,
+        [{"params": base_params}, {"params": visual_params, "lr": learning_rate * 10}],
         weight_decay=weight_decay,
     )
 
