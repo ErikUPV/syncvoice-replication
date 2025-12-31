@@ -866,6 +866,7 @@ class VoxCPMModel(nn.Module):
             
             # The length of generation is strictly the length of visual_cond_seq
             max_len = visual_cond_seq.shape[1]
+        
 
         # Prepare prompt context patches for streaming mode
         # When there's a prompt audio, use its last (streaming_prefix_len - 1) patches as initial context
@@ -906,6 +907,8 @@ class VoxCPMModel(nn.Module):
                 if i < visual_cond_seq.shape[1]:
                     curr_vis = visual_cond_seq[:, i, :] # [B, H]
                     dit_hidden = dit_hidden + curr_vis
+            
+                print(f"Magnitudes:\n LM to DIT: {dit_hidden_1.abs().mean().item():.4f}, Residual to DIT: {dit_hidden_2.abs().mean().item():.4f}, Visual Cond: {curr_vis.abs().mean().item():.4f}")
                 else:
                     # Should not happen if max_len is set correctly
                     pass
