@@ -333,7 +333,7 @@ class VoxCPMModel(nn.Module):
 
         dit_hidden = self.lm_to_dit_proj(lm_hidden) + self.res_to_dit_proj(residual_hidden)
 
-        dit_hidden = self.multimodal_fusion_proj(torch.cat([dit_hidden, visual_cond], dim=-1))
+        dit_hidden += self.multimodal_fusion_proj(torch.cat([dit_hidden, visual_cond], dim=-1))
 
         # Inject Visual Condition
         
