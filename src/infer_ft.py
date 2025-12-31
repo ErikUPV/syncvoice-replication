@@ -122,7 +122,7 @@ def main():
                                        val_manifest=f"{args.data_root}/valid.jsonl",
                                        sample_rate=44100)
     
-    for i, item in enumerate(tqdm(val_ds, desc="Processing samples")):
+    for i, item in enumerate(tqdm(val_ds.shuffle(seed=42), desc="Processing samples")):
         print(item)
         # Run inference
         prompt_wav_path = None  # item['audio']
