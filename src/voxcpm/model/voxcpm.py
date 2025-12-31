@@ -200,6 +200,9 @@ class VoxCPMModel(nn.Module):
             text_dim=config.lm_config.hidden_size, # Project to model's hidden dim
             bottleneck_dim=config.va_config.bottleneck_dim
         )
+
+        self.multimodal_fusion_proj = nn.Linear(config.dit_config.hidden_dim * 2, config.dit_config.hidden_dim)
+
         if self.lora_config is not None:
             self._apply_lora()
 
@@ -330,8 +333,10 @@ class VoxCPMModel(nn.Module):
 
         dit_hidden = self.lm_to_dit_proj(lm_hidden) + self.res_to_dit_proj(residual_hidden)
 
+        dit_hidden = self.multimodal_fusion_proj(torch.cat([dit_hidden, visual_cond], dim=-1))
+
         # Inject Visual Condition
-        dit_hidden = dit_hidden + visual_cond
+        
 
         dit_hidden = rearrange(dit_hidden, "b t c -> (b t) c")
 
