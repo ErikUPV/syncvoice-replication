@@ -173,6 +173,8 @@ def train(
             visual_params.append(param)
         else:
             base_params.append(param)
+
+    print(f"Base params: {len(base_params)}, Visual params: {len(visual_params)}")
             
 
     optimizer = AdamW(
