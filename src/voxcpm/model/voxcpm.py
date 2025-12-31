@@ -908,7 +908,7 @@ class VoxCPMModel(nn.Module):
                     curr_vis = visual_cond_seq[:, i, :] # [B, H]
                     dit_hidden = dit_hidden + curr_vis
             
-                print(f"Magnitudes:\n LM to DIT: {dit_hidden_1.abs().mean().item():.4f}, Residual to DIT: {dit_hidden_2.abs().mean().item():.4f}, Visual Cond: {curr_vis.abs().mean().item():.4f}")
+                    print(f"Magnitudes:\n LM to DIT: {dit_hidden_1.abs().mean().item():.4f}, Residual to DIT: {dit_hidden_2.abs().mean().item():.4f}, Visual Cond: {curr_vis.abs().mean().item():.4f}")
                 else:
                     # Should not happen if max_len is set correctly
                     pass
