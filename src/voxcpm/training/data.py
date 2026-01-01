@@ -162,11 +162,11 @@ class HFVoxCPMDataset(TorchDataset):
         # lip_padded = cls.pad_sequences(lip_feats_list, pad_value=-100.0)
         lip_padded = pad_sequence(lip_feats_list, batch_first=True, padding_value=0.0)
         face_feats_list = [sample["face_feats"] for sample in batch]
-        face_padded = pad_sequence(face_feats_list, batch_first=True, padding_value=-100.0)
+        face_padded = pad_sequence(face_feats_list, batch_first=True, padding_value=0.0)
 
-        lengths = [lip_feats_list[i].shape[1] for i in range(len(lip_feats_list))] # [B, T_vis, 96, 96]
-        lip_mask = torch.arange(lip_padded.size(1))[None, :] < torch.tensor(lengths)[:, None]
-        print(f"collate_fn: {lip_mask.shape}")
+        # lengths = [lip_feats_list[i].shape[0] for i in range(len(lip_feats_list))] # [B, T_vis, 96, 96]
+        # lip_mask = torch.arange(lip_padded.size(1))[None, :] < torch.tensor(lengths)[:, None]
+        # print(f"collate_fn: {lip_mask.shape}")
 
         # face_padded = cls.pad_sequences(face_feats_list, pad_value=-100.0)
         # Stack speaker embeddings (they are global vectors)
@@ -179,7 +179,7 @@ class HFVoxCPMDataset(TorchDataset):
             "dataset_ids": dataset_ids,
             "is_prompts": is_prompts,
             "lip_feats": lip_padded,
-            "lip_mask": lip_mask,
+            # "lip_mask": lip_mask,
             "face_feats": face_padded,
             # "spk_embs": spk_emb_batch
         }
@@ -218,7 +218,7 @@ class BatchProcessor:
         dataset_ids = batch["dataset_ids"].to(self.device)
         lip_feats_list = batch["lip_feats"].to(self.device)
         face_feats_list = batch["face_feats"].to(self.device)
-        lip_mask = batch["lip_mask"].to(self.device)
+        # lip_mask = batch["lip_mask"].to(self.device)
 
         packed = self.packer(
             audio_tokens=audio_tokens,
@@ -228,7 +228,7 @@ class BatchProcessor:
             is_prompts=batch["is_prompts"],
             lip_tokens_list=lip_feats_list,
             face_tokens_list=face_feats_list,
-            lip_mask_list=lip_mask,
+            # lip_mask_list=lip_mask,
         )
 
         # packed["spk_embs"] = batch["spk_embs"].to(self.device)
