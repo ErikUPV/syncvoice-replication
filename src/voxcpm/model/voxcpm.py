@@ -262,7 +262,6 @@ class VoxCPMModel(nn.Module):
         position_ids: torch.Tensor,
         labels: torch.Tensor,
         lip_feats: torch.Tensor,   # [B, T_video, 96, 96]
-        lip_mask: torch.Tensor,    # [B, T_video]
         face_feats: torch.Tensor,  # [B, T_video, 512]
         *,
         progress: float = 0.0,
@@ -279,12 +278,11 @@ class VoxCPMModel(nn.Module):
 
         lip_feats = lip_feats.to(self.device, dtype=self._dtype())
         face_feats = face_feats.to(self.device, dtype=self._dtype())
-        lip_mask = lip_mask.to(self.device, dtype=torch.bool)
 
 
-        lip_emb = self.lip_encoder(lip_feats, lip_mask)
+        lip_emb = self.lip_encoder(lip_feats)
 
-        lip_lengths = [lip_mask[i].sum() for i in range(lip_mask.shape[0])]
+        lip_lengths = (torch.sum(torch.any(lip_feats.abs() > 0, dim=(-1, -2)), dim=-1)).to(torch.int32)
         # lip_emb = self._resample_visuals(lip_emb, audio_feats.shape[1], mode='linear')
         # face_feats = self._resample_visuals(face_feats, audio_feats.shape[1], mode='linear')
         
