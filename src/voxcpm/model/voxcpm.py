@@ -420,6 +420,7 @@ class VoxCPMModel(nn.Module):
         This preserves information from all frames by averaging them into the target bins.
         """
         # tensor: [B, T, D]
+        print("Resampling visuals with avg pooling...")
         src_len = tensor.shape[1]
         if src_len == target_len:
             return tensor
