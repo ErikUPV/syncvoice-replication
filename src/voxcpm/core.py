@@ -145,20 +145,33 @@ class VoxCPM:
         if src_len == target_len:
             return tensor
             
-        if mode == 'nearest':
-            indices = torch.linspace(0, src_len - 1, target_len).long()
-            indices = torch.clamp(indices, 0, src_len - 1).to(tensor.device)
-            return tensor[:, indices]
+        if mode == 'avgpooling':
+            return self._avg_pool_resample(tensor, target_len)
         elif mode == 'linear':
             # Interpolate expects [N, C, L], input is [B, T, D]
             tensor_in = tensor.transpose(1, 2) # -> [B, D, T]
             tensor_out = F.interpolate(tensor_in, size=target_len, mode='linear', align_corners=False)
             return tensor_out.transpose(1, 2) # -> [B, target_len, D]
-        elif mode == "bilinear": #tensor in is [B, T, H, W]
-            tensor_in = tensor.permute(0, 3, 1, 2) # -> [B, W, T, H]
-            tensor_out = F.interpolate(tensor_in, size=(target_len, tensor.shape[3]), mode='bilinear', align_corners=False)
-            return tensor_out.permute(0, 2, 3, 1) # -> [B, target_len, H, W]
         return tensor
+    
+    def _avg_pool_resample(self, tensor: torch.Tensor, target_len: int, mode: str = 'nearest') -> torch.Tensor:
+        """
+        Resamples [B, T, D] visual features to [B, target_len, D] using Adaptive Pooling.
+        This preserves information from all frames by averaging them into the target bins.
+        """
+        # tensor: [B, T, D]
+        src_len = tensor.shape[1]
+        if src_len == target_len:
+            return tensor
+
+        # Prepare for pooling: [B, D, T]
+        tensor_in = tensor.transpose(1, 2)
+        
+        # Adaptive Avg Pool automatically calculates the window size and stride 
+        # to squeeze T frames into target_len frames.
+        tensor_out = F.adaptive_avg_pool1d(tensor_in, target_len)
+        
+        return tensor_out.transpose(1, 2) # -> [B, target_len, D]
 
     def _generate(self, 
             text : str,

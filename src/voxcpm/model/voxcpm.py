@@ -303,7 +303,7 @@ class VoxCPMModel(nn.Module):
 
             # curr_vid = video_adapted[i] # [T_video, hidden_size]
 
-            curr_vid = self._resample_visuals(curr_vid.unsqueeze(0), n_audio_tokens, mode='linear').squeeze(0)
+            curr_vid = self._resample_visuals(curr_vid.unsqueeze(0), n_audio_tokens, mode='avgpooling').squeeze(0)
             audio_start_idx = (audio_mask[i] == 1).nonzero(as_tuple=True)[0][0]
             visual_cond[i, audio_start_idx:audio_start_idx + n_audio_tokens, :] = curr_vid
         
@@ -405,16 +405,33 @@ class VoxCPMModel(nn.Module):
         if src_len == target_len:
             return tensor
             
-        if mode == 'nearest':
-            indices = torch.linspace(0, src_len - 1, target_len).long()
-            indices = torch.clamp(indices, 0, src_len - 1).to(tensor.device)
-            return tensor[:, indices]
+        if mode == 'avgpooling':
+            return self._avg_pool_resample(tensor, target_len)
         elif mode == 'linear':
             # Interpolate expects [N, C, L], input is [B, T, D]
             tensor_in = tensor.transpose(1, 2) # -> [B, D, T]
             tensor_out = F.interpolate(tensor_in, size=target_len, mode='linear', align_corners=False)
             return tensor_out.transpose(1, 2) # -> [B, target_len, D]
         return tensor
+    
+    def _avg_pool_resample(self, tensor: torch.Tensor, target_len: int, mode: str = 'nearest') -> torch.Tensor:
+        """
+        Resamples [B, T, D] visual features to [B, target_len, D] using Adaptive Pooling.
+        This preserves information from all frames by averaging them into the target bins.
+        """
+        # tensor: [B, T, D]
+        src_len = tensor.shape[1]
+        if src_len == target_len:
+            return tensor
+
+        # Prepare for pooling: [B, D, T]
+        tensor_in = tensor.transpose(1, 2)
+        
+        # Adaptive Avg Pool automatically calculates the window size and stride 
+        # to squeeze T frames into target_len frames.
+        tensor_out = F.adaptive_avg_pool1d(tensor_in, target_len)
+        
+        return tensor_out.transpose(1, 2) # -> [B, target_len, D]
 
     @torch.inference_mode()
     def _generate(
@@ -695,10 +712,10 @@ class VoxCPMModel(nn.Module):
         """
         
         # 1. Disable badcase retry if visuals are provided (Length is fixed by video)
-        if lip_feats is not None:
-            max_len = lip_feats.shape[1]
-            min_len = lip_feats.shape[1]
-            retry_badcase = False
+        # if lip_feats is not None:
+        #     max_len = lip_feats.shape[1]
+        #     min_len = lip_feats.shape[1]
+        #     retry_badcase = False
 
         if retry_badcase and streaming:
             warnings.warn("Retry on bad cases is not supported in streaming mode, setting retry_badcase=False.")
@@ -867,7 +884,7 @@ class VoxCPMModel(nn.Module):
             audio_fps = self.audio_vae.sample_rate / self.audio_vae.hop_length
             scale_factor = audio_fps / 25.0 
             target_len = int(visual_cond_seq.shape[1] * scale_factor)  // self.patch_size
-            visual_cond_seq = self._resample_visuals(visual_cond_seq, target_len=target_len, mode='linear')
+            visual_cond_seq = self._resample_visuals(visual_cond_seq, target_len=target_len, mode='avgpooling')
             
             # The length of generation is strictly the length of visual_cond_seq
             max_len = visual_cond_seq.shape[1]
