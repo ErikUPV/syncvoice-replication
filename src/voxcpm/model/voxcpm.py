@@ -201,7 +201,7 @@ class VoxCPMModel(nn.Module):
             bottleneck_dim=config.va_config.bottleneck_dim
         )
 
-        self.multimodal_fusion_proj = nn.Linear(config.dit_config.hidden_dim * 2, config.dit_config.hidden_dim)
+        self.multimodal_fusion_proj = nn.Linear(config.dit_config.hidden_dim, config.dit_config.hidden_dim)
         nn.init.zeros_(self.multimodal_fusion_proj.weight)
         nn.init.zeros_(self.multimodal_fusion_proj.bias)
 
@@ -333,7 +333,7 @@ class VoxCPMModel(nn.Module):
 
         dit_hidden = self.lm_to_dit_proj(lm_hidden) + self.res_to_dit_proj(residual_hidden)
 
-        dit_hidden += self.multimodal_fusion_proj(torch.cat([dit_hidden, visual_cond], dim=-1))
+        dit_hidden += self.multimodal_fusion_proj(visual_cond)
 
         # Inject Visual Condition
         
@@ -929,7 +929,7 @@ class VoxCPMModel(nn.Module):
                 # Get visual condition for current step i
                 if i < visual_cond_seq.shape[1]:
                     curr_vis = visual_cond_seq[:, i, :] # [B, H]
-                    dit_hidden += self.multimodal_fusion_proj(torch.cat([dit_hidden, curr_vis], dim=-1))
+                    dit_hidden += self.multimodal_fusion_proj(curr_vis)
             
                     # print(f"Magnitudes:\n LM to DIT: {dit_hidden_1.abs().mean().item():.4f}, Residual to DIT: {dit_hidden_2.abs().mean().item():.4f}, Visual Cond: {curr_vis.abs().mean().item():.4f}")
                 else:
