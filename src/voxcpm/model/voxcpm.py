@@ -73,6 +73,7 @@ class VoxCPMConfig(BaseModel):
     residual_lm_num_layers: int = 6
     scalar_quantization_latent_dim: int = 256
     scalar_quantization_scale: int = 9
+    visual_resample_mode: str = "linear"
 
     va_config: VisualAdapterConfig
     encoder_config: VoxCPMEncoderConfig
@@ -303,7 +304,11 @@ class VoxCPMModel(nn.Module):
 
             # curr_vid = video_adapted[i] # [T_video, hidden_size]
 
-            curr_vid = self._resample_visuals(curr_vid.unsqueeze(0), n_audio_tokens, mode='linear').squeeze(0)
+            curr_vid = self._resample_visuals(
+                curr_vid.unsqueeze(0),
+                n_audio_tokens,
+                mode=self.config.visual_resample_mode,
+            ).squeeze(0)
             audio_start_idx = (audio_mask[i] == 1).nonzero(as_tuple=True)[0][0]
             visual_cond[i, audio_start_idx:audio_start_idx + n_audio_tokens, :] = curr_vid
         
@@ -889,7 +894,11 @@ class VoxCPMModel(nn.Module):
             audio_fps = self.audio_vae.sample_rate / self.audio_vae.hop_length
             scale_factor = audio_fps / 25.0 
             target_len = int(visual_cond_seq.shape[1] * scale_factor)  // self.patch_size
-            visual_cond_seq = self._resample_visuals(visual_cond_seq, target_len=target_len, mode='linear')
+            visual_cond_seq = self._resample_visuals(
+                visual_cond_seq,
+                target_len=target_len,
+                mode=self.config.visual_resample_mode,
+            )
             
             # The length of generation is strictly the length of visual_cond_seq
             max_len = visual_cond_seq.shape[1]

@@ -58,6 +58,7 @@ def train(
     lambdas: Dict[str, float] = {"loss/diff": 1.0, "loss/stop": 1.0},
     lora: dict = None,
     config_path: str = "",
+    visual_resample_mode: str = "",
     # Distribution options (for LoRA checkpoints)
     hf_model_id: str = "",   # HuggingFace model ID (e.g., "openbmb/VoxCPM1.5")
     distribute: bool = False, # If True, save hf_model_id as base_model; otherwise save pretrained_path
@@ -82,7 +83,15 @@ def train(
     writer = SummaryWriter(log_dir=str(tb_dir)) if accelerator.rank == 0 else None
     tracker = TrainingTracker(writer=writer, log_file=str(save_dir / "train.log"), rank=accelerator.rank)
 
-    base_model = VoxCPMModel.from_local(pretrained_path, optimize=False, training=True, lora_config=LoRAConfig(**lora) if lora else None)
+    base_model = VoxCPMModel.from_local(
+        pretrained_path,
+        optimize=False,
+        training=True,
+        lora_config=LoRAConfig(**lora) if lora else None,
+    )
+    if visual_resample_mode:
+        base_model.config.visual_resample_mode = visual_resample_mode
+        tracker.print(f"Visual resample mode set to: {visual_resample_mode}")
     tokenizer = base_model.text_tokenizer
 
     train_ds, val_ds = load_audio_text_datasets(
@@ -477,11 +486,19 @@ def save_checkpoint(model, optimizer, scheduler, save_dir: Path, step: int, pret
         # Copy config files from pretrained path
         if pretrained_path:
             pretrained_dir = Path(pretrained_path)
-            files_to_copy = ["config.json", "audiovae.pth", "tokenizer.json", "special_tokens_map.json", "tokenizer_config.json"]
+            files_to_copy = ["audiovae.pth", "tokenizer.json", "special_tokens_map.json", "tokenizer_config.json"]
             for fname in files_to_copy:
                 src = pretrained_dir / fname
                 if src.exists():
                     shutil.copy2(src, folder / fname)
+        if hasattr(unwrapped, "config"):
+            config_path = folder / "config.json"
+            try:
+                config_path.write_text(unwrapped.config.model_dump_json(indent=2), encoding="utf-8")
+            except AttributeError:
+                import json
+
+                config_path.write_text(json.dumps(unwrapped.config.__dict__, indent=2), encoding="utf-8")
     
     torch.save(optimizer.state_dict(), folder / "optimizer.pth")
     torch.save(scheduler.state_dict(), folder / "scheduler.pth")
