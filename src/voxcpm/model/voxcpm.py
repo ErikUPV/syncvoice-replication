@@ -202,9 +202,12 @@ class VoxCPMModel(nn.Module):
             bottleneck_dim=config.va_config.bottleneck_dim
         )
 
-        self.multimodal_fusion_proj = nn.Linear(config.dit_config.hidden_dim, config.dit_config.hidden_dim)
-        nn.init.zeros_(self.multimodal_fusion_proj.weight)
-        nn.init.zeros_(self.multimodal_fusion_proj.bias)
+        # self.vis_gate = nn.Parameter(torch.tensor(-4.0))
+
+
+        # self.multimodal_fusion_proj = nn.Linear(config.dit_config.hidden_dim, config.dit_config.hidden_dim)
+        # nn.init.zeros_(self.multimodal_fusion_proj.weight)
+        # nn.init.zeros_(self.multimodal_fusion_proj.bias)
 
         if self.lora_config is not None:
             self._apply_lora()
@@ -338,7 +341,7 @@ class VoxCPMModel(nn.Module):
 
         dit_hidden = self.lm_to_dit_proj(lm_hidden) + self.res_to_dit_proj(residual_hidden)
 
-        dit_hidden += self.multimodal_fusion_proj(visual_cond)
+        dit_hidden += visual_cond
 
         # Inject Visual Condition
         
@@ -897,7 +900,7 @@ class VoxCPMModel(nn.Module):
             visual_cond_seq = self._resample_visuals(
                 visual_cond_seq,
                 target_len=target_len,
-                mode='avgpooling'#self.config.visual_resample_mode,
+                mode=self.config.visual_resample_mode,
             )
             
             # The length of generation is strictly the length of visual_cond_seq
