@@ -52,7 +52,7 @@ class LipEncoder(nn.Module):
         # Input: [B, 1, T, 96, 96]
         self.conv1 = nn.Conv3d(1, 64, kernel_size=(5, 7, 7), stride=(1, 2, 2), padding=(2, 3, 3), bias=False) # 
         self.bn1 = nn.GroupNorm(32, 64)
-        self.relu = nn.ReLU()
+        self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool3d(kernel_size=(1, 3, 3), stride=(1, 2, 2), padding=(0, 1, 1))
 
         # Basic Blocks
@@ -88,7 +88,7 @@ class BasicBlock3D(nn.Module):
         super().__init__()
         self.conv1 = nn.Conv3d(inplanes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
         self.bn1 = nn.GroupNorm(32, planes)
-        self.relu = nn.ReLU()
+        self.relu = nn.ReLU(inplace=True)
         self.conv2 = nn.Conv3d(planes, planes, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn2 = nn.GroupNorm(32, planes)
         
@@ -98,7 +98,7 @@ class BasicBlock3D(nn.Module):
         if stride != 1 or inplanes != planes:
             self.downsample = nn.Sequential(
                 nn.Conv3d(inplanes, planes, kernel_size=1, stride=stride, bias=False),
-                nn.GroupNorm(32,planes),
+                nn.BatchNorm3d(planes)#nn.GroupNorm(32,planes),
             )
 
     def forward(self, x):
