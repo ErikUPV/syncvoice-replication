@@ -897,7 +897,7 @@ class VoxCPMModel(nn.Module):
             visual_cond_seq = self._resample_visuals(
                 visual_cond_seq,
                 target_len=target_len,
-                mode='nearest',
+                mode=self.config.visual_resample_mode,
             )
             
             # The length of generation is strictly the length of visual_cond_seq
@@ -947,6 +947,9 @@ class VoxCPMModel(nn.Module):
                     print(f"proj magnitude: {self.multimodal_fusion_proj(curr_vis).abs().mean().item()}")
                     print(f"lm_to_dit magnitude: {dit_hidden_1.abs().mean().item()}")
                     print(f"res_to_dit magnitude: {dit_hidden_2.abs().mean().item()}")
+                    print("visual_cond mean abs:", curr_vis.abs().mean().item())
+                    print("after proj mean abs:", self.multimodal_fusion_proj(curr_vis).abs().mean().item())
+                    print("W norm:", self.multimodal_fusion_proj.weight.norm().item())
             
                     # print(f"Magnitudes:\n LM to DIT: {dit_hidden_1.abs().mean().item():.4f}, Residual to DIT: {dit_hidden_2.abs().mean().item():.4f}, Visual Cond: {curr_vis.abs().mean().item():.4f}")
                 else:
