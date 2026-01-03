@@ -78,6 +78,7 @@ class LipEncoder(nn.Module):
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x) # [B, out_dim, T, H', W']
+        print(x.shape)
         x = self.avgpool(x) # [B, out_dim, T, 1, 1]
         x = x.squeeze(-1).squeeze(-1) # [B, out_dim, T]
         x = x.transpose(1, 2) # [B, T, out_dim]
