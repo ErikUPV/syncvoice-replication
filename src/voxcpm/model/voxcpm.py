@@ -942,7 +942,7 @@ class VoxCPMModel(nn.Module):
                 # Get visual condition for current step i
                 if i < visual_cond_seq.shape[1]:
                     curr_vis = visual_cond_seq[:, i, :] # [B, H]
-                    dit_hidden += self.multimodal_fusion_proj(curr_vis)
+                    dit_hidden += self.multimodal_fusion_proj(curr_vis) * 5
 
                     print(f"proj magnitude: {self.multimodal_fusion_proj(curr_vis).abs().mean().item()}")
                     print(f"lm_to_dit magnitude: {dit_hidden_1.abs().mean().item()}")
