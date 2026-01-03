@@ -73,7 +73,7 @@ class VoxCPMConfig(BaseModel):
     residual_lm_num_layers: int = 6
     scalar_quantization_latent_dim: int = 256
     scalar_quantization_scale: int = 9
-    visual_resample_mode: str = "linear"
+    visual_resample_mode: str = "avgpooling"
 
     va_config: VisualAdapterConfig
     encoder_config: VoxCPMEncoderConfig
