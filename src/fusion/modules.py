@@ -78,7 +78,6 @@ class LipEncoder(nn.Module):
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x) # [B, out_dim, T, H', W']
-        print(x.shape)
         x = self.avgpool(x) # [B, out_dim, T, 1, 1]
         x = x.squeeze(-1).squeeze(-1) # [B, out_dim, T]
         x = x.transpose(1, 2) # [B, T, out_dim]
@@ -99,7 +98,7 @@ class BasicBlock3D(nn.Module):
         if stride != 1 or inplanes != planes:
             self.downsample = nn.Sequential(
                 nn.Conv3d(inplanes, planes, kernel_size=1, stride=stride, bias=False),
-                nn.GroupNorm(32, planes),
+                nn.GroupNorm(32,planes),
             )
 
     def forward(self, x):
