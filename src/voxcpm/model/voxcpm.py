@@ -945,6 +945,8 @@ class VoxCPMModel(nn.Module):
                     dit_hidden += self.multimodal_fusion_proj(curr_vis)
 
                     print(f"proj magnitude: {self.multimodal_fusion_proj(curr_vis).abs().mean().item()}")
+                    print(f"lm_to_dit magnitude: {dit_hidden_1.abs().mean().item()}")
+                    print(f"res_to_dit magnitude: {dit_hidden_2.abs().mean().item()}")
             
                     # print(f"Magnitudes:\n LM to DIT: {dit_hidden_1.abs().mean().item():.4f}, Residual to DIT: {dit_hidden_2.abs().mean().item():.4f}, Visual Cond: {curr_vis.abs().mean().item():.4f}")
                 else:
