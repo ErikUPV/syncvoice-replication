@@ -85,7 +85,7 @@ def train(
     tracker = TrainingTracker(writer=writer, log_file=str(save_dir / "train.log"), rank=accelerator.rank)
 
     wandb.init(
-        project="syncvoice-voxcpm-finetune",
+        project="SyncVoice VoxCPM Fine-tune",
         dir=str(tb_dir),
         name=save_dir.name,
         config={
