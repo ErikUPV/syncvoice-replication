@@ -897,7 +897,7 @@ class VoxCPMModel(nn.Module):
             visual_cond_seq = self._resample_visuals(
                 visual_cond_seq,
                 target_len=target_len,
-                mode=self.config.visual_resample_mode,
+                mode='nearest',
             )
             
             # The length of generation is strictly the length of visual_cond_seq
