@@ -16,6 +16,7 @@ from torch.optim import AdamW
 from transformers import get_cosine_schedule_with_warmup
 import signal
 import os
+import wandb
 
 try:
     from safetensors.torch import save_file
@@ -82,6 +83,27 @@ def train(
 
     writer = SummaryWriter(log_dir=str(tb_dir)) if accelerator.rank == 0 else None
     tracker = TrainingTracker(writer=writer, log_file=str(save_dir / "train.log"), rank=accelerator.rank)
+
+    wandb.init(
+        project="syncvoice-voxcpm-finetune",
+        dir=str(tb_dir),
+        name=save_dir.name,
+        config={
+            "pretrained_path": pretrained_path,
+            "train_manifest": train_manifest,
+            "val_manifest": val_manifest,
+            "sample_rate": sample_rate,
+            "batch_size": batch_size,
+            "grad_accum_steps": grad_accum_steps,
+            "num_workers": num_workers,
+            "learning_rate": learning_rate,
+            "weight_decay": weight_decay,
+            "warmup_steps": warmup_steps,
+            "max_steps": max_steps,
+            "lora": lora,
+            "visual_resample_mode": visual_resample_mode,
+        },
+    )
 
     base_model = VoxCPMModel.from_local(
         pretrained_path,
@@ -317,6 +339,8 @@ def train(
                 loss_values["epoch"] = float(epoch)
                 loss_values["grad_norm"] = float(grad_norm)
                 tracker.log_metrics(loss_values, split="train")
+                wandb_dict = {f"train/{k}": v for k, v in loss_values.items()}
+                wandb.log(wandb_dict, step=step)
 
             if val_loader is not None and step % valid_interval == 0 and step != 0:
                 validate(model, val_loader, batch_processor, accelerator, tracker, lambdas)
@@ -367,6 +391,8 @@ def validate(model, val_loader, batch_processor, accelerator, tracker, lambdas):
         # All-reduce validation loss across processes for global average
         accelerator.all_reduce(mean_loss)
         tracker.log_metrics({"loss": mean_loss.item()}, split="val")
+        wandb_dict = {"val/loss": mean_loss.item()}
+        wandb.log(wandb_dict, step=tracker.step)
     model.train()
 
 
