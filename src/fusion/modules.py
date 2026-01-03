@@ -14,6 +14,12 @@ class VisualAdapter(nn.Module):
         # "bottleneck structure with LayerNorm, GELU" 
         self.norm = nn.RMSNorm(visual_dim)
         
+        self.temporal_mixer = nn.Sequential(
+            nn.Conv1d(visual_dim, visual_dim, kernel_size=3, padding=1, groups=visual_dim),
+            nn.GroupNorm(32, visual_dim),
+            nn.Dropout(dropout)
+        )
+
         self.projection = nn.Sequential(
             nn.Linear(visual_dim, bottleneck_dim),
             nn.GELU(),
@@ -26,6 +32,11 @@ class VisualAdapter(nn.Module):
     def forward(self, x):
         # x shape: [Batch, Time_Video, Visual_Dim]
         residual = self.residual_proj(x)
+
+        x = x.transpose(1, 2) # [B, Visual_Dim, Time_Video]
+        x = self.temporal_mixer(x)
+        x = x.transpose(1, 2) # [B, Time_Video, Visual_Dim]
+
         x = self.norm(x)
         x = self.projection(x)
         return x + residual 
