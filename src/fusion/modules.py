@@ -98,7 +98,7 @@ class BasicBlock3D(nn.Module):
         if stride != 1 or inplanes != planes:
             self.downsample = nn.Sequential(
                 nn.Conv3d(inplanes, planes, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm3d(planes),
+                nn.GroupNorm(32, planes),
             )
 
     def forward(self, x):
