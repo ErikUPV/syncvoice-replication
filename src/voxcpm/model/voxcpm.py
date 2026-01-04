@@ -972,7 +972,7 @@ class VoxCPMModel(nn.Module):
             dit_hidden_2 = self.res_to_dit_proj(residual_hidden)  # [b, h_dit]
             dit_hidden = dit_hidden_1 + dit_hidden_2  # [b, h_dit]
 
-            if visual_cond_seq is not None:
+            if lip_cond is not None and face_cond is not None:
                 # Get visual condition for current step i
                 if i < lip_cond.shape[1]:
                     curr_vis = lip_cond[:, i, :] + face_cond[:, i, :]  # [B, H]
