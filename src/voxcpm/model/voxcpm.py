@@ -289,7 +289,6 @@ class VoxCPMModel(nn.Module):
         lip_feats = lip_feats.to(self.device, dtype=self._dtype())
         face_feats = face_feats.to(self.device, dtype=self._dtype())
 
-        print(f"patch size: {self.patch_size}")
 
 
         lip_emb = self.lip_encoder(lip_feats)
@@ -311,6 +310,10 @@ class VoxCPMModel(nn.Module):
         audio_lengths = audio_mask.sum(dim=1).long().cpu().tolist()
         lip_lengths_list = lip_lengths.cpu().tolist()
         audio_starts = (audio_mask == 1).int().argmax(dim=1).cpu().tolist()
+
+        print(f"audio_lengths: {audio_lengths}")
+        print(f"lip_lengths: {lip_lengths_list}")
+        print(f"audio_starts: {audio_starts}")
 
         for i in range(B):
             n_audio_tokens = audio_lengths[i]
