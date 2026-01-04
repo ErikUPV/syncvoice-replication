@@ -935,7 +935,8 @@ class VoxCPMModel(nn.Module):
             )            
             # The length of generation is strictly the length of visual_cond_seq
             max_len = lip_cond.shape[1]
-        
+            print("Resampled lip cond shape:", lip_cond.shape)
+            print("Resampled face cond shape:", face_cond.shape)
 
         # Prepare prompt context patches for streaming mode
         # When there's a prompt audio, use its last (streaming_prefix_len - 1) patches as initial context
