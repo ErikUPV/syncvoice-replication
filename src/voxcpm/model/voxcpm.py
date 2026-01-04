@@ -336,6 +336,8 @@ class VoxCPMModel(nn.Module):
                 n_audio_tokens,
                 mode=self.config.visual_resample_mode,
             ).squeeze(0)
+
+            print(curr_face.shape, curr_lip.shape)
             # audio_start_idx = (audio_mask[i] == 1).nonzero(as_tuple=True)[0][0]
             lip_cond[i, start_idx : start_idx + n_audio_tokens, :] = curr_lip
             face_cond[i, start_idx : start_idx + n_audio_tokens, :] = curr_face
