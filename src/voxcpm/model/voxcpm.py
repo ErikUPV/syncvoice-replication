@@ -289,6 +289,8 @@ class VoxCPMModel(nn.Module):
         lip_feats = lip_feats.to(self.device, dtype=self._dtype())
         face_feats = face_feats.to(self.device, dtype=self._dtype())
 
+        print(f"patch size: {self.patch_size}")
+
 
         lip_emb = self.lip_encoder(lip_feats)
 
