@@ -947,12 +947,9 @@ class VoxCPMModel(nn.Module):
                     curr_vis = visual_cond_seq[:, i, :] # [B, H]
                     dit_hidden += curr_vis
 
-                    print(f"proj magnitude: {self.multimodal_fusion_proj(curr_vis).abs().mean().item()}")
                     print(f"lm_to_dit magnitude: {dit_hidden_1.abs().mean().item()}")
                     print(f"res_to_dit magnitude: {dit_hidden_2.abs().mean().item()}")
                     print("visual_cond mean abs:", curr_vis.abs().mean().item())
-                    print("after proj mean abs:", self.multimodal_fusion_proj(curr_vis).abs().mean().item())
-                    print("W norm:", self.multimodal_fusion_proj.weight.norm().item())
             
                     # print(f"Magnitudes:\n LM to DIT: {dit_hidden_1.abs().mean().item():.4f}, Residual to DIT: {dit_hidden_2.abs().mean().item():.4f}, Visual Cond: {curr_vis.abs().mean().item():.4f}")
                 else:
