@@ -194,15 +194,21 @@ class VoxCPMModel(nn.Module):
         
         # 2. Visual Adapter (Fuses Lip + Face -> Text Dimension)
         # Note: We calculate total visual dim = lip_dim + face_dim
-        visual_input_dim = config.va_config.lip_dim + config.va_config.face_dim
+        # visual_input_dim = config.va_config.lip_dim + config.va_config.face_dim
         
-        self.visual_adapter = VisualAdapter(
-            visual_dim=visual_input_dim,          # Corrected to match modules.py signature
+        self.lip_adapter = VisualAdapter(
+            visual_dim=config.va_config.lip_dim,          # Corrected to match modules.py signature
             text_dim=config.lm_config.hidden_size, # Project to model's hidden dim
             bottleneck_dim=config.va_config.bottleneck_dim
         )
 
-        self.vis_gate = nn.Parameter(torch.tensor(1.0))
+        self.face_adapter = VisualAdapter(
+            visual_dim=config.va_config.face_dim,          # Corrected to match modules.py signature
+            text_dim=config.lm_config.hidden_size, # Project to model's hidden dim
+            bottleneck_dim=config.va_config.bottleneck_dim
+        )
+
+        # self.lip_gate = nn.Parameter(torch.tensor(1.0))
 
 
         # self.multimodal_fusion_proj = nn.Linear(config.dit_config.hidden_dim, config.dit_config.hidden_dim)
@@ -291,11 +297,14 @@ class VoxCPMModel(nn.Module):
         # face_feats = self._resample_visuals(face_feats, audio_feats.shape[1], mode='linear')
         
         # 2. Concatenate: [B, T_video, lip_dim + face_dim]
-        video_feats = torch.cat([lip_emb, face_feats], dim=-1)
-        video_adapted = self.visual_adapter(video_feats)  # [B, T_video, hidden_size]
+        # video_feats = torch.cat([lip_emb, face_feats], dim=-1)
+        # video_adapted = self.visual_adapter(video_feats)  # [B, T_video, hidden_size]
+        lip_adapted = self.lip_adapter(lip_emb)  # [B, T_video, hidden_size]
+        face_adapted = self.face_adapter(face_feats)  # [B, T_video, hidden_size]
         
         B, T_total = audio_mask.shape
-        visual_cond = torch.zeros((B, T_total, video_adapted.shape[-1]), device=self.device, dtype=video_adapted.dtype)
+        lip_cond = torch.zeros((B, T_total, lip_adapted.shape[-1]), device=self.device, dtype=lip_adapted.dtype)
+        face_cond = torch.zeros((B, T_total, face_adapted.shape[-1]), device=self.device, dtype=face_adapted.dtype)
 
         audio_lengths = audio_mask.sum(dim=1).long().cpu().tolist()
         lip_lengths_list = lip_lengths.cpu().tolist()
@@ -308,19 +317,24 @@ class VoxCPMModel(nn.Module):
 
             # RECORTAR ANTES DE RESAMPLEAR
             # Solo tomamos los frames válidos
-            curr_vid = video_adapted[i, :n_visual_valid, :]
-
+            curr_lip = lip_adapted[i, :n_visual_valid, :]
+            curr_face = face_adapted[i, :n_visual_valid, :]
             # curr_vid = video_adapted[i] # [T_video, hidden_size]
 
-            curr_vid = self._resample_visuals(
-                curr_vid.unsqueeze(0),
+            curr_lip = self._resample_visuals(
+                curr_lip.unsqueeze(0),
+                n_audio_tokens,
+                mode=self.config.visual_resample_mode,
+            ).squeeze(0)
+            curr_face = self._resample_visuals(
+                curr_face.unsqueeze(0),
                 n_audio_tokens,
                 mode=self.config.visual_resample_mode,
             ).squeeze(0)
             # audio_start_idx = (audio_mask[i] == 1).nonzero(as_tuple=True)[0][0]
-            visual_cond[i, start_idx : start_idx + n_audio_tokens, :] = curr_vid
+            lip_cond[i, start_idx : start_idx + n_audio_tokens, :] = curr_lip
+            face_cond[i, start_idx : start_idx + n_audio_tokens, :] = curr_face
         
-
         B, T, P, D = audio_feats.shape
         feat_embed = self.feat_encoder(audio_feats)
         feat_embed = self.enc_to_lm_proj(feat_embed)
@@ -346,7 +360,7 @@ class VoxCPMModel(nn.Module):
 
         dit_hidden = self.lm_to_dit_proj(lm_hidden) + self.res_to_dit_proj(residual_hidden)
 
-        dit_hidden += visual_cond * self.vis_gate   
+        dit_hidden += lip_cond + face_cond   
 
         # Inject Visual Condition
         

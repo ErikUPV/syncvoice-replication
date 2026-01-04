@@ -9,13 +9,13 @@ class VisualAdapterConfig(BaseModel):
     bottleneck_dim: int = 128  # Dimensión del cuello de botella
 
 class VisualAdapter(nn.Module):
-    def __init__(self, visual_dim, text_dim, bottleneck_dim=128, dropout=0.1):
+    def __init__(self, visual_dim, text_dim, bottleneck_dim=128, dropout=0.1, context_size=5):
         super().__init__()
         # "bottleneck structure with LayerNorm, GELU" 
         self.norm = nn.RMSNorm(visual_dim)
         
         self.temporal_mixer = nn.Sequential(
-            nn.Conv1d(visual_dim, visual_dim, kernel_size=3, padding=1, groups=visual_dim),
+            nn.Conv1d(visual_dim, visual_dim, kernel_size=context_size, padding=context_size // 2, groups=visual_dim),
             nn.GroupNorm(32, visual_dim),
             nn.Dropout(dropout)
         )
