@@ -520,11 +520,11 @@ def save_checkpoint(model, optimizer, scheduler, save_dir: Path, step: int, pret
         if hasattr(unwrapped, "config"):
             config_path = folder / "config.json"
             try:
-                config_path.write_text(unwrapped.config.model_dump_json(indent=2), encoding="utf-8")
+                config_path.write_text(unwrapped.config.model_dump_json(indent=2, exclude_none=True), encoding="utf-8")
             except AttributeError:
                 import json
 
-                config_path.write_text(json.dumps(unwrapped.config.__dict__, indent=2), encoding="utf-8")
+                config_path.write_text(json.dumps(unwrapped.config.__dict__, indent=2, exclude_none=True), encoding="utf-8")
     
     torch.save(optimizer.state_dict(), folder / "optimizer.pth")
     torch.save(scheduler.state_dict(), folder / "scheduler.pth")
