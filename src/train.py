@@ -196,7 +196,7 @@ def train(
         for name, param in model.named_parameters():
             print(name, param.requires_grad)
 
-    visual_prefixes = ["lip_encoder", "face_encoder", "visual_adapter", "multimodal_fusion_proj", "vis_gate"]
+    visual_prefixes = ["lip_encoder", "face_encoder", "face_adapter", "lip_adapter", "multimodal_fusion_proj", "vis_gate"]
 
     visual_params, base_params = [], []
     for name, param in model.named_parameters():
