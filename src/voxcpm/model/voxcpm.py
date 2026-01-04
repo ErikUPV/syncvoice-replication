@@ -908,21 +908,33 @@ class VoxCPMModel(nn.Module):
             lip_emb = self.lip_encoder(lip_feats.to(self.device, dtype=self._dtype()))
             face_feats = face_feats.to(self.device, dtype=self._dtype())
             # 2. Concat & Adapt
-            video_feats = torch.cat([lip_emb, face_feats], dim=-1)
-            visual_cond_seq = self.visual_adapter(video_feats) # [B, T_vis, H]
+            lip_adapted = self.lip_adapter(lip_emb)  # [B, T_video, hidden_size] 
+            face_adapted = self.face_adapter(face_feats)  # [B, T_video, hidden_size]
+
+            print("Lip adapted shape:", lip_adapted.shape)
+            print("Face adapted shape:", face_adapted.shape)
 
             # 3. Resample
             audio_fps = self.audio_vae.sample_rate / self.audio_vae.hop_length
             scale_factor = audio_fps / 25.0 
-            target_len = int(visual_cond_seq.shape[1] * scale_factor)  // self.patch_size
-            visual_cond_seq = self._resample_visuals(
-                visual_cond_seq,
+            target_len = int(lip_adapted.shape[1] * scale_factor)  // self.patch_size
+            # visual_cond_seq = self._resample_visuals(
+            #     visual_cond_seq,
+            #     target_len=target_len,
+            #     mode=self.config.visual_resample_mode,
+            # )
+            lip_cond = self._resample_visuals(
+                lip_adapted,
                 target_len=target_len,
                 mode=self.config.visual_resample_mode,
             )
-            
+            face_cond = self._resample_visuals(
+                face_adapted,
+                target_len=target_len,
+                mode=self.config.visual_resample_mode,
+            )            
             # The length of generation is strictly the length of visual_cond_seq
-            max_len = visual_cond_seq.shape[1]
+            max_len = lip_cond.shape[1]
         
 
         # Prepare prompt context patches for streaming mode
@@ -961,8 +973,8 @@ class VoxCPMModel(nn.Module):
 
             if visual_cond_seq is not None:
                 # Get visual condition for current step i
-                if i < visual_cond_seq.shape[1]:
-                    curr_vis = visual_cond_seq[:, i, :] # [B, H]
+                if i < lip_cond.shape[1]:
+                    curr_vis = lip_cond[:, i, :] + face_cond[:, i, :]  # [B, H]
                     dit_hidden += curr_vis  # scale visual condition
 
 
