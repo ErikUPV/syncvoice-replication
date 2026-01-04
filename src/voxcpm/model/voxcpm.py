@@ -202,7 +202,7 @@ class VoxCPMModel(nn.Module):
             bottleneck_dim=config.va_config.bottleneck_dim
         )
 
-        # self.vis_gate = nn.Parameter(torch.tensor(-4.0))
+        self.vis_gate = nn.Parameter(torch.tensor(-4.0))
 
 
         # self.multimodal_fusion_proj = nn.Linear(config.dit_config.hidden_dim, config.dit_config.hidden_dim)
@@ -945,11 +945,11 @@ class VoxCPMModel(nn.Module):
                 # Get visual condition for current step i
                 if i < visual_cond_seq.shape[1]:
                     curr_vis = visual_cond_seq[:, i, :] # [B, H]
-                    dit_hidden += curr_vis * 2  # scale visual condition
+                    dit_hidden += curr_vis  # scale visual condition
 
-                    print(f"lm_to_dit magnitude: {dit_hidden_1.abs().mean().item()}")
-                    print(f"res_to_dit magnitude: {dit_hidden_2.abs().mean().item()}")
-                    print("visual_cond mean abs:", curr_vis.abs().mean().item())
+                    base = (dit_hidden_1 + dit_hidden_2).abs().mean().item()
+                    vis  = curr_vis.abs().mean().item()
+                    print("base:", base, "vis:", vis, "vis/base:", vis/(base+1e-8))
             
                     # print(f"Magnitudes:\n LM to DIT: {dit_hidden_1.abs().mean().item():.4f}, Residual to DIT: {dit_hidden_2.abs().mean().item():.4f}, Visual Cond: {curr_vis.abs().mean().item():.4f}")
                 else:
