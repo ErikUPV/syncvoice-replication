@@ -335,6 +335,8 @@ class VoxCPMModel(nn.Module):
             lip_cond[i, start_idx : start_idx + n_audio_tokens, :] = curr_lip
             face_cond[i, start_idx : start_idx + n_audio_tokens, :] = curr_face
         
+        print("shape after resampling:", lip_cond.shape, face_cond.shape)
+        
         B, T, P, D = audio_feats.shape
         feat_embed = self.feat_encoder(audio_feats)
         feat_embed = self.enc_to_lm_proj(feat_embed)
