@@ -977,7 +977,7 @@ class VoxCPMModel(nn.Module):
                 if i < lip_cond.shape[1]:
                     curr_vis = lip_cond[:, i, :] + face_cond[:, i, :]  # [B, H]
                     print(f"Magnitudes:\n lip_cond: {lip_cond[:, i, :].abs().mean().item():.4f}, face_cond: {face_cond[:, i, :].abs().mean().item():.4f}")
-                    dit_hidden += curr_vis  # scale visual condition
+                    dit_hidden += curr_vis * 2 # scale visual condition
 
 
                     # print("base:", base, "vis:", vis, "vis/base:", vis/(base+1e-8))
