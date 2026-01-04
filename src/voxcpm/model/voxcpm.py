@@ -945,7 +945,7 @@ class VoxCPMModel(nn.Module):
                 # Get visual condition for current step i
                 if i < visual_cond_seq.shape[1]:
                     curr_vis = visual_cond_seq[:, i, :] # [B, H]
-                    dit_hidden += curr_vis  # scale visual condition
+                    dit_hidden += curr_vis * 2  # scale visual condition
 
                     base = (dit_hidden_1 + dit_hidden_2).abs().mean().item()
                     vis  = curr_vis.abs().mean().item()
