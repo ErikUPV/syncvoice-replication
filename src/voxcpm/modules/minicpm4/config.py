@@ -26,4 +26,4 @@ class MiniCPM4Config(BaseModel):
     dim_model_base: int
     scale_depth: float
     rope_theta: float
-    kv_channels: int = None
+    kv_channels: Optional[int] = None
