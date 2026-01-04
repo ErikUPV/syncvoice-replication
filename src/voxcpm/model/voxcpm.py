@@ -975,7 +975,7 @@ class VoxCPMModel(nn.Module):
             if lip_cond is not None and face_cond is not None:
                 # Get visual condition for current step i
                 if i < lip_cond.shape[1]:
-                    curr_vis = lip_cond[:, i, :] + face_cond[:, i, :] * 3  # [B, H]
+                    curr_vis = lip_cond[:, i, :] * 4 + face_cond[:, i, :]   # [B, H]
                     print(f"Magnitudes:\n lip_cond: {lip_cond[:, i, :].abs().mean().item():.4f}, face_cond: {face_cond[:, i, :].abs().mean().item():.4f}")
                     dit_hidden += curr_vis # scale visual condition
 
