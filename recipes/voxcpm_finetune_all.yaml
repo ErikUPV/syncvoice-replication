@@ -14,8 +14,8 @@ weight_decay: 0.01
 warmup_steps: 1000
 max_steps: 20000
 max_batch_tokens: 8192  # Example: single batch can have at most 16k tokens, with batch_size=4, each sample can have at most 4096 tokens
-save_path: models/syncvoice_voxcpm_0.00001_avgpool_mixer_gate
-tensorboard: logs/syncvoice_voxcpm_0.00001_avgpool_mixer_gate
+save_path: models/syncvoice_voxcpm_0.00001_avgpool_mixer_gate_x10
+tensorboard: logs/syncvoice_voxcpm_0.00001_avgpool_mixer_gate_x10
 visual_resample_mode: avgpooling
 lambdas:
   loss/diff: 1.0
