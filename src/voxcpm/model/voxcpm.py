@@ -1011,7 +1011,7 @@ class VoxCPMModel(nn.Module):
                 
                 yield feat_pred, pred_feat_seq
             
-            if visual_cond_seq is None:
+            if lip_cond is None  and face_cond is None:
                 stop_flag = self.stop_head(self.stop_actn(self.stop_proj(lm_hidden))).argmax(dim=-1)[0].cpu().item()
                 if i > min_len and stop_flag == 1:
                     break
