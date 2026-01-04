@@ -202,7 +202,7 @@ class VoxCPMModel(nn.Module):
             bottleneck_dim=config.va_config.bottleneck_dim
         )
 
-        self.vis_gate = nn.Parameter(torch.tensor(-4.0))
+        self.vis_gate = nn.Parameter(torch.tensor(1.0))
 
 
         # self.multimodal_fusion_proj = nn.Linear(config.dit_config.hidden_dim, config.dit_config.hidden_dim)
@@ -297,9 +297,14 @@ class VoxCPMModel(nn.Module):
         B, T_total = audio_mask.shape
         visual_cond = torch.zeros((B, T_total, video_adapted.shape[-1]), device=self.device, dtype=video_adapted.dtype)
 
+        audio_lengths = audio_mask.sum(dim=1).long().cpu().tolist()
+        lip_lengths_list = lip_lengths.cpu().tolist()
+        audio_starts = (audio_mask == 1).int().argmax(dim=1).cpu().tolist()
+
         for i in range(B):
-            n_audio_tokens = int(audio_mask[i].sum().item())
-            n_visual_valid = int(lip_lengths[i].item()) # Longitud REAL del video
+            n_audio_tokens = audio_lengths[i]
+            n_visual_valid = lip_lengths_list[i]
+            start_idx = audio_starts[i]
 
             # RECORTAR ANTES DE RESAMPLEAR
             # Solo tomamos los frames válidos
@@ -312,8 +317,8 @@ class VoxCPMModel(nn.Module):
                 n_audio_tokens,
                 mode=self.config.visual_resample_mode,
             ).squeeze(0)
-            audio_start_idx = (audio_mask[i] == 1).nonzero(as_tuple=True)[0][0]
-            visual_cond[i, audio_start_idx:audio_start_idx + n_audio_tokens, :] = curr_vid
+            # audio_start_idx = (audio_mask[i] == 1).nonzero(as_tuple=True)[0][0]
+            visual_cond[i, start_idx : start_idx + n_audio_tokens, :] = curr_vid
         
 
         B, T, P, D = audio_feats.shape
@@ -341,7 +346,7 @@ class VoxCPMModel(nn.Module):
 
         dit_hidden = self.lm_to_dit_proj(lm_hidden) + self.res_to_dit_proj(residual_hidden)
 
-        dit_hidden += visual_cond
+        dit_hidden += visual_cond * self.vis_gate   
 
         # Inject Visual Condition
         
@@ -432,7 +437,6 @@ class VoxCPMModel(nn.Module):
         This preserves information from all frames by averaging them into the target bins.
         """
         # tensor: [B, T, D]
-        print("Resampling visuals with avg pooling...")
         src_len = tensor.shape[1]
         if src_len == target_len:
             return tensor
@@ -944,7 +948,7 @@ class VoxCPMModel(nn.Module):
             if visual_cond_seq is not None:
                 # Get visual condition for current step i
                 if i < visual_cond_seq.shape[1]:
-                    curr_vis = visual_cond_seq[:, i, :] * 2# [B, H]
+                    curr_vis = visual_cond_seq[:, i, :] # [B, H]
                     dit_hidden += curr_vis  # scale visual condition
 
 
