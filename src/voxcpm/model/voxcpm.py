@@ -949,7 +949,7 @@ class VoxCPMModel(nn.Module):
 
                     base = (dit_hidden_1 + dit_hidden_2).abs().mean().item()
                     vis  = curr_vis.abs().mean().item()
-                    print("base:", base, "vis:", vis, "vis/base:", vis/(base+1e-8))
+                    # print("base:", base, "vis:", vis, "vis/base:", vis/(base+1e-8))
             
                     # print(f"Magnitudes:\n LM to DIT: {dit_hidden_1.abs().mean().item():.4f}, Residual to DIT: {dit_hidden_2.abs().mean().item():.4f}, Visual Cond: {curr_vis.abs().mean().item():.4f}")
                 else:
